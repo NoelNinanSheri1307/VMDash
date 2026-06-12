@@ -7,6 +7,6 @@ class UserRoles(Base):
 
     staff_code1 = Column(String(50), primary_key = True)
 
-    role = Column(Enum("admin", "view_only",name="roles" ), nullable=False)
+    role = Column(Enum("admin", "manager", "user", name="roles"), nullable=False)
     
     password_hash = Column(String(255), nullable=False)

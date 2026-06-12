@@ -25,6 +25,12 @@ import CapacityProjections from './pages/CapacityProjections.jsx';
 import MyAnalytics from './pages/MyAnalytics.jsx';
 import SyncCenter from './pages/SyncCenter.jsx';
 
+import SyncLogsCenter from './pages/SyncLogsCenter.jsx';
+import UserDirectory from './pages/UserDirectory.jsx';
+import VmRequestsManager from './pages/VmRequestsManager.jsx';
+import VmOwnershipConsole from './pages/VmOwnershipConsole.jsx';
+import RequestVmForm from './pages/RequestVmForm.jsx';
+
 function AppContent() {
   const allRoles = ['admin', 'manager', 'user'];
   const opsRoles = ['admin', 'manager'];
@@ -64,8 +70,14 @@ function AppContent() {
       <Route path="/reports" element={<ProtectedRoute allowedRoles={allRoles}><AppLayout><PageContainer title="Custom Reports"><div className="text-slate-500 dark:text-slate-400">Manage custom report schemas and scheduled exports placeholder. Note: You can export reports directly from the Proxmox VMs tab.</div></PageContainer></AppLayout></ProtectedRoute>} />
 
       <Route path="/administration/users" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><PageContainer title="Add User Credentials"><Navigate to="/add-user" replace /></PageContainer></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/users-list" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><UserDirectory /></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/requests" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><VmRequestsManager /></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/ownership" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><VmOwnershipConsole /></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/sync-logs" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><SyncLogsCenter /></AppLayout></ProtectedRoute>} />
       <Route path="/administration/sync" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><SyncCenter /></AppLayout></ProtectedRoute>} />
       <Route path="/administration/add-vm" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><PageContainer title="Add VM Provision"><Navigate to="/add" replace /></PageContainer></AppLayout></ProtectedRoute>} />
+
+      <Route path="/user/request-vm" element={<ProtectedRoute allowedRoles={userOnly}><AppLayout><RequestVmForm /></AppLayout></ProtectedRoute>} />
 
       <Route path="/settings/profile" element={<ProtectedRoute allowedRoles={allRoles}><AppLayout><PageContainer title="My Profile"><div className="text-slate-500 dark:text-slate-400">User focal points information and security settings placeholder.</div></PageContainer></AppLayout></ProtectedRoute>} />
       <Route path="/settings/theme" element={<ProtectedRoute allowedRoles={allRoles}><AppLayout><PageContainer title="Theme Settings"><div className="text-slate-500 dark:text-slate-400">Theme customization preferences placeholder. Note: You can toggle dark/light theme directly using the theme switcher in the topbar.</div></PageContainer></AppLayout></ProtectedRoute>} />

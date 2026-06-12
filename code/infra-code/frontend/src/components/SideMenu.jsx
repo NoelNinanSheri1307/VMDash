@@ -90,6 +90,86 @@ const SideMenu = () => {
         <path d="M12 15v2" />
       </svg>
     ),
+    "Clusters View": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
+    ),
+    "Nodes View": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="2" width="20" height="8" rx="2" />
+        <rect x="2" y="14" width="20" height="8" rx="2" />
+        <line x1="6" y1="6" x2="6.01" y2="6" />
+        <line x1="6" y1="18" x2="6.01" y2="18" />
+      </svg>
+    ),
+    "Storage View": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M22 12H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+      </svg>
+    ),
+    "Division Usage": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z" />
+      </svg>
+    ),
+    "Entity Usage": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M18 20V10M12 20V4M6 20v-6" />
+      </svg>
+    ),
+    "Capacity Projections": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M23 6l-9.5 9.5-5-5L1 18" />
+        <path d="M17 6h6v6" />
+      </svg>
+    ),
+    "Performance Trends": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+      </svg>
+    ),
+    "Sync Logs": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+      </svg>
+    ),
+    "User Directory": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    "VM Request Inbox": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+        <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+      </svg>
+    ),
+    "VM Ownership": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <polyline points="16 11 18 13 22 9" />
+      </svg>
+    ),
+    "Request VM": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    ),
+    "My Analytics": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
     Logout: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M10 17l5-5-5-5" />
@@ -101,7 +181,7 @@ const SideMenu = () => {
 
   const linkClasses = (path) =>
     `flex items-center gap-3 mx-2 my-[2px] px-3 py-2 rounded-xl transition-all duration-150
-     text-[15px] font-medium tracking-wide
+     text-[14px] font-medium tracking-wide
     ${
       location.pathname === path
         ? "bg-blue-600 text-white shadow-sm"
@@ -130,7 +210,7 @@ const SideMenu = () => {
       console.error("Sync failed:", error);
       alert("Sync failed! Check console logs");
     } finally {
-      setSyncing(false);
+      syncing = false;
       setIsOpen(false);
     }
   };
@@ -149,26 +229,113 @@ const SideMenu = () => {
   };
 
   const adminLinks = [
-    { to: "/home", label: "Home" },
-    { to: "/add-cluster", label: "Add Cluster" },
-    { to: "/add", label: "Add VM" },
-    { to: "/proxmox/vms", label: "Proxmox VMs" },
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/stalldashboard", label: "Stall Dashboard" },
-    { to: "/add-user", label: "Add User" },
-    { type: "action", label: syncing ? "Syncing..." : "Sync", onClick: handleSync },
-    { to: "/change-password", label: "Change Password" },
+    { category: "Core Operations", to: "/home", label: "Home" },
+    { category: "Core Operations", to: "/proxmox/vms", label: "Proxmox VMs" },
+    { category: "Core Operations", to: "/dashboard", label: "Dashboard" },
+    { category: "Core Operations", to: "/stalldashboard", label: "Stall Dashboard" },
+    
+    { category: "VM & Provisioning Controls", to: "/administration/requests", label: "VM Request Inbox" },
+    { category: "VM & Provisioning Controls", to: "/add", label: "Add VM" },
+    { category: "VM & Provisioning Controls", to: "/administration/ownership", label: "VM Ownership" },
+    
+    { category: "Account & System Center", to: "/administration/users-list", label: "User Directory" },
+    { category: "Account & System Center", to: "/add-user", label: "Add User" },
+    { category: "Account & System Center", to: "/administration/sync-logs", label: "Sync Logs" },
+    { category: "Account & System Center", type: "action", label: syncing ? "Syncing..." : "Sync", onClick: handleSync },
+    
+    { category: "Settings", to: "/change-password", label: "Change Password" },
   ];
 
-  const viewOnlyLinks = [
-    { to: "/home", label: "Home" },
-    { to: "/proxmox/vms", label: "Proxmox VMs" },
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/stalldashboard", label: "Stall Dashboard" },
-    { to: "/change-password", label: "Change Password" },
+  const managerLinks = [
+    { category: "Operational Dashboard", to: "/home", label: "Home" },
+    { category: "Operational Dashboard", to: "/proxmox/vms", label: "Proxmox VMs" },
+    { category: "Operational Dashboard", to: "/dashboard", label: "Dashboard" },
+    { category: "Operational Dashboard", to: "/stalldashboard", label: "Stall Dashboard" },
+    
+    { category: "Infrastructure State", to: "/infrastructure/clusters", label: "Clusters View" },
+    { category: "Infrastructure State", to: "/infrastructure/nodes", label: "Nodes View" },
+    { category: "Infrastructure State", to: "/infrastructure/storage", label: "Storage View" },
+    
+    { category: "Capacity & Resource Analytics", to: "/analytics/division-usage", label: "Division Usage" },
+    { category: "Capacity & Resource Analytics", to: "/analytics/entity-usage", label: "Entity Usage" },
+    { category: "Capacity & Resource Analytics", to: "/analytics/capacity-projection", label: "Capacity Projections" },
+    { category: "Capacity & Resource Analytics", to: "/monitoring/trends", label: "Performance Trends" },
+    
+    { category: "Settings", to: "/change-password", label: "Change Password" },
   ];
 
-  const links = role === "admin" ? adminLinks : viewOnlyLinks;
+  const userLinks = [
+    { category: "Personal Resources", to: "/home", label: "Home" },
+    { category: "Personal Resources", to: "/proxmox/vms", label: "Proxmox VMs" },
+    
+    { category: "Request Self-Service", to: "/user/request-vm", label: "Request VM" },
+    { category: "Request Self-Service", to: "/analytics/my-analytics", label: "My Analytics" },
+    
+    { category: "Settings", to: "/change-password", label: "Change Password" },
+  ];
+
+  const getCategorizedLinks = () => {
+    if (role === "admin") return adminLinks;
+    if (role === "manager") return managerLinks;
+    return userLinks;
+  };
+
+  const links = getCategorizedLinks();
+
+  const renderNavLinks = () => {
+    let currentCategory = "";
+    const rendered = [];
+
+    links.forEach((link, index) => {
+      if (link.category !== currentCategory) {
+        currentCategory = link.category;
+        rendered.push(
+          <div 
+            key={`cat-header-${currentCategory}`} 
+            className="px-5 pt-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+          >
+            {currentCategory}
+          </div>
+        );
+      }
+
+      if (link.type === "action") {
+        rendered.push(
+          <button
+            key={`action-${index}`}
+            onClick={link.onClick}
+            disabled={link.isSync && syncing}
+            className="flex items-center gap-3 mx-2 my-[2px] px-3 py-2 rounded-xl text-[14px] font-medium tracking-wide transition-all duration-150 text-gray-700 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-60 disabled:cursor-not-allowed w-[calc(100%-16px)]"
+          >
+            <span className="w-9 h-9 rounded-xl border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 bg-white">
+              {icons[link.label] || icons.Sync}
+            </span>
+            <span className="truncate">{link.label}</span>
+          </button>
+        );
+      } else {
+        rendered.push(
+          <Link
+            key={`link-${link.to}`}
+            to={link.to}
+            onClick={closeMenu}
+            className={linkClasses(link.to)}
+          >
+            <span
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 border-blue-100 ${location.pathname === link.to ? "bg-blue-100" : "bg-white"}`}
+            >
+              {React.cloneElement(icons[link.label] || icons.Home, {
+                className: `w-5 h-5 ${location.pathname === link.to ? "text-blue-600" : "text-blue-600"}`
+              })}
+            </span>
+            <span className="truncate">{link.label}</span>
+          </Link>
+        );
+      }
+    });
+
+    return rendered;
+  };
 
   return (
     <>
@@ -211,37 +378,7 @@ const SideMenu = () => {
       >
         <div className="h-full flex flex-col">
           <div className="flex-1 overflow-y-auto py-3">
-            {links.map((link) =>
-              link.type === "action" ? (
-                <button
-                  key={link.label}
-                  onClick={link.onClick}
-                  disabled={link.isSync && syncing}
-                  className="flex items-center gap-3 mx-2 my-[2px] px-3 py-2 rounded-xl text-[15px] font-medium tracking-wide transition-all duration-150 text-gray-700 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <span className="w-9 h-9 rounded-xl border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 bg-white">
-                    {icons[link.label] || icons.Sync}
-                  </span>
-                  <span className="truncate">{link.label}</span>
-                </button>
-              ) : (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={closeMenu}
-                  className={linkClasses(link.to)}
-                >
-                  <span
-                    className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 border-blue-100 ${location.pathname === link.to ? "bg-blue-100" : "bg-white"}`}
-                  >
-                    {React.cloneElement(icons[link.label] || icons.Home, {
-                      className: `w-5 h-5 ${location.pathname === link.to ? "text-blue-600" : "text-blue-600"}`
-                    })}
-                  </span>
-                  <span className="truncate">{link.label}</span>
-                </Link>
-              )
-            )}
+            {renderNavLinks()}
           </div>
 
           <div className="border-t px-5 py-3 bg-blue-50">

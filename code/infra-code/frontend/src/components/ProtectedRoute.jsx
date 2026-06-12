@@ -46,13 +46,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     // Dynamic role mapping: admin/view_only -> admin, manager, user
     let role = auth_user.role;
-    if (role === "view_only") {
-        if (auth_user.staff_code === "manager") {
-            role = "manager";
-        } else {
-            role = "user";
-        }
-    }
 
     // Role verification
     if (allowedRoles && !allowedRoles.includes(role)) {

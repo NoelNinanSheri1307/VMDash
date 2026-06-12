@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    font-family: 'Footlight MT Light', 'Noto Serif', 'Liberation Serif', 'Times New Roman', serif;
+    @apply transition-colors duration-150;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+
+  html.dark body {
+    @apply bg-[#0B1220] text-[#F8FAFC];
+  }
+  
+  /* Institutional heading styling */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Footlight MT Light', 'Noto Serif', 'Liberation Serif', 'Times New Roman', serif;
+    @apply font-semibold tracking-wide;
+  }
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

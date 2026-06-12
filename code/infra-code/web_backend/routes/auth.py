@@ -233,8 +233,8 @@ def add_user():
         if not staff_code or not role:
             return jsonify({"error": "Staff code and role are required"}), 400
 
-        if role not in ['admin', 'view_only']:
-            return jsonify({"error": "Role must be 'admin' or 'view_only'"}), 400
+        if role not in ['admin', 'manager', 'user']:
+            return jsonify({"error": "Role must be 'admin', 'manager', or 'user'"}), 400
 
         # Check if user already exists
         existing_user = session.query(UserRoles).filter_by(staff_code1=staff_code).first()

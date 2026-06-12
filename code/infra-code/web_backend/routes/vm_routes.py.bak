@@ -24,7 +24,7 @@ def get_vms():
             "os_type": vm.os,
             "disk_size": vm.disk_size,
             "source": vm.source,
-            "request_source": getattr(vm, "request_source", None),
+            "request_source": vm.request_source,
             "time_created": vm.time_created,
             "gpu": vm.gpu,
             "users": [{"staff_code": u.staff_code, "name": u.name, "center": u.center, "entity": u.entity, "groupname": u.groupname, "division": u.division, "section": u.section} 

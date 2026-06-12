@@ -22,6 +22,5 @@ class Vm(Base):
     narc = Column(String(10))                               # NARC number (if exists)
     time_created = Column(String(10), nullable = False)
     gpu = Column(String(5))
-    request_source = Column(String(100))
 
     users = relationship("User", secondary = vm_users, back_populates = "vms")

@@ -42,10 +42,6 @@ const AppLayout = ({ children }) => {
   }
   const staffCode = user.staff_code;
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-role", role);
-  }, [role]);
-
   // Handle collapsible sidebar on window resize
   useEffect(() => {
     const handleResize = () => {
@@ -196,7 +192,7 @@ const AppLayout = ({ children }) => {
               Infrastructure View
             </span>
           ) : (
-            <span className="w-full text-center text-[15px] font-bold text-role-primary">
+            <span className="w-full text-center text-[15px] font-bold text-blue-700 dark:text-blue-500">
               VD
             </span>
           )}
@@ -213,7 +209,7 @@ const AppLayout = ({ children }) => {
           <div className="p-3 shrink-0">
             <button
               onClick={() => navigate("/administration/sync")}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-150 bg-role-primary-light hover:bg-role-primary hover:bg-opacity-20 text-role-primary border border-border-role-primary-light"
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-150 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-100/30 dark:border-blue-900/30"
             >
               <RefreshCw size={14} />
               {isSidebarOpen && "Sync Center"}
@@ -245,8 +241,8 @@ const AppLayout = ({ children }) => {
                       className={`
                         flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium transition-all duration-150
                         ${isActive
-                          ? "bg-role-primary text-white shadow-sm"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-role-primary"
+                          ? "bg-blue-700 dark:bg-blue-600 text-white shadow-sm"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-blue-700 dark:hover:text-blue-400"
                         }
                       `}
                     >
@@ -262,7 +258,7 @@ const AppLayout = ({ children }) => {
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-role-primary-light flex items-center justify-center text-role-primary shrink-0">
+            <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
               <UserCheck size={18} />
             </div>
             {isSidebarOpen && (
@@ -301,8 +297,8 @@ const AppLayout = ({ children }) => {
                         className={`
                           flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium transition-all duration-150
                           ${isActive
-                            ? "bg-role-primary text-white"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-role-primary"
+                            ? "bg-blue-700 dark:bg-blue-600 text-white"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           }
                         `}
                       >

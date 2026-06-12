@@ -1,0 +1,9 @@
+# MySQL
+code/mysql-data/
+mysql-data/
+
+# Python
+venv/
+**/venv/
+__pycache__/
+*.pyc
