@@ -170,6 +170,35 @@ const SideMenu = () => {
         <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     ),
+    "My Reports": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+        <line x1="10" y1="9" x2="8" y2="9" />
+      </svg>
+    ),
+    "Custom Reports": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <line x1="9" y1="9" x2="15" y2="9" />
+        <line x1="9" y1="12" x2="15" y2="12" />
+        <line x1="9" y1="15" x2="13" y2="15" />
+        <polyline points="16 14 18 16 22 12" />
+      </svg>
+    ),
+    "Report History": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15 15" />
+      </svg>
+    ),
+    "Audit Dashboard": (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z" />
+      </svg>
+    ),
     Logout: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M10 17l5-5-5-5" />
@@ -238,6 +267,10 @@ const SideMenu = () => {
     { category: "VM & Provisioning Controls", to: "/add", label: "Add VM" },
     { category: "VM & Provisioning Controls", to: "/administration/ownership", label: "VM Ownership" },
     
+    { category: "Reports", to: "/reports/custom-reports", label: "Custom Reports" },
+    { category: "Reports", to: "/reports/history", label: "Report History" },
+    { category: "Reports", to: "/reports/audit-dashboard", label: "Audit Dashboard" },
+
     { category: "Account & System Center", to: "/administration/users-list", label: "User Directory" },
     { category: "Account & System Center", to: "/add-user", label: "Add User" },
     { category: "Account & System Center", to: "/administration/sync-logs", label: "Sync Logs" },
@@ -260,6 +293,9 @@ const SideMenu = () => {
     { category: "Capacity & Resource Analytics", to: "/analytics/entity-usage", label: "Entity Usage" },
     { category: "Capacity & Resource Analytics", to: "/analytics/capacity-projection", label: "Capacity Projections" },
     { category: "Capacity & Resource Analytics", to: "/monitoring/trends", label: "Performance Trends" },
+
+    { category: "Reports", to: "/reports/custom-reports", label: "Custom Reports" },
+    { category: "Reports", to: "/reports/history", label: "Report History" },
     
     { category: "Settings", to: "/change-password", label: "Change Password" },
   ];
@@ -270,6 +306,9 @@ const SideMenu = () => {
     
     { category: "Request Self-Service", to: "/user/request-vm", label: "Request VM" },
     { category: "Request Self-Service", to: "/analytics/my-analytics", label: "My Analytics" },
+
+    { category: "Reports", to: "/reports/my-reports", label: "My Reports" },
+    { category: "Reports", to: "/reports/history", label: "Report History" },
     
     { category: "Settings", to: "/change-password", label: "Change Password" },
   ];

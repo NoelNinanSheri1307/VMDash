@@ -1,0 +1,764 @@
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import Plot from "react-plotly.js";
+import webApi from "../api/webapi";
+import proxmoxApi from "../api/proxmoxapi";
+import Loader from "../components/Loader";
+import Card from "../components/ui/Card";
+import Badge from "../components/ui/Badge";
+import PageContainer from "../layouts/PageContainer";
+import ReportPopup from "../components/ReportPopup";
+import { useTheme } from "../theme/ThemeProvider";
+import {
+  Monitor, Filter, Download, RefreshCw,
+  BarChart2, PieChart, Layers, Server,
+  Shield, Activity, Cpu, HardDrive,
+  ChevronDown, ChevronUp, X, FileText
+} from "lucide-react";
+
+// ─── Plotly theme (role-sensitive) ───────────────────────────────────────────
+const getPlotlyTheme = (role, theme) => {
+  const isDark = theme === "dark";
+  let primaryColor = "#3b82f6";
+  let colors = ["#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#2563eb"];
+  if (role === "manager") {
+    primaryColor = "#10b981";
+    colors = ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#d1fae5", "#059669"];
+  }
+  return {
+    primaryColor, colors,
+    layout: {
+      paper_bgcolor: "transparent", plot_bgcolor: "transparent",
+      font: { family: "Inter, Roboto, sans-serif", color: isDark ? "#cbd5e1" : "#475569", size: 11 },
+      margin: { t: 30, b: 40, l: 40, r: 15 },
+      showlegend: true,
+      legend: { orientation: "h", y: -0.25, font: { size: 10, color: isDark ? "#cbd5e1" : "#475569" } },
+      xaxis: { gridcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", tickfont: { color: isDark ? "#94a3b8" : "#64748b" } },
+      yaxis: { gridcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", tickfont: { color: isDark ? "#94a3b8" : "#64748b" } }
+    }
+  };
+};
+
+// ─── All report columns ───────────────────────────────────────────────────────
+const ALL_REPORT_FIELDS = [
+  { key: "vm_name",              label: "VM Name" },
+  { key: "vm_uuid",              label: "UUID" },
+  { key: "os",                   label: "OS" },
+  { key: "status",               label: "Status" },
+  { key: "live_status",          label: "Live Status" },
+  { key: "uptime",               label: "Uptime" },
+  { key: "cpus",                 label: "CPUs" },
+  { key: "max_memory",           label: "RAM (GB)" },
+  { key: "max_disk",             label: "Disk (GB)" },
+  { key: "cluster_name",         label: "Cluster" },
+  { key: "node_name",            label: "Node" },
+  { key: "ip",                   label: "IP Address" },
+  { key: "mac",                  label: "MAC Address" },
+  { key: "gpu",                  label: "GPU" },
+  { key: "gpu_info",             label: "GPU Details" },
+  { key: "created_date",         label: "Created Date" },
+  { key: "users_assigned",       label: "Users Assigned" },
+  { key: "com_focal_point",      label: "COM Focal Point" },
+  { key: "end_user_focal_point", label: "End User Focal Point" },
+  { key: "prometheus_status",    label: "Prometheus Status" },
+  { key: "software_installed",   label: "Software Installed" },
+  { key: "request_source",       label: "Request Source" },
+  { key: "storages",             label: "Storage Pools" },
+];
+
+// ─── Report presets (columns auto-filled) ─────────────────────────────────────
+const REPORT_PRESETS = [
+  {
+    id: "inventory",
+    title: "VM Inventory Report",
+    description: "Complete VM inventory across all clusters and nodes.",
+    icon: <Monitor size={20} />,
+    columns: ["vm_name", "os", "status", "cluster_name", "node_name", "cpus", "max_memory", "max_disk", "ip", "gpu"],
+  },
+  {
+    id: "ownership",
+    title: "Ownership Report",
+    description: "User-to-VM ownership mappings and focal point assignments.",
+    icon: <FileText size={20} />,
+    columns: ["vm_name", "users_assigned", "com_focal_point", "end_user_focal_point", "os", "status", "cluster_name"],
+  },
+  {
+    id: "capacity",
+    title: "Capacity Report",
+    description: "CPU, RAM and storage allocations across infrastructure.",
+    icon: <Cpu size={20} />,
+    columns: ["vm_name", "cpus", "max_memory", "max_disk", "gpu", "gpu_info", "node_name", "cluster_name", "status"],
+  },
+  {
+    id: "health",
+    title: "Infrastructure Health Report",
+    description: "Status, live-status, uptime and monitoring coverage by VM.",
+    icon: <Activity size={20} />,
+    columns: ["vm_name", "status", "live_status", "node_name", "cluster_name", "uptime", "prometheus_status"],
+  },
+  {
+    id: "entity",
+    title: "Entity Usage Report",
+    description: "VM assignments grouped by VSSC entity.",
+    icon: <BarChart2 size={20} />,
+    columns: ["vm_name", "users_assigned", "os", "status", "cpus", "max_memory", "cluster_name"],
+  },
+  {
+    id: "division",
+    title: "Division Usage Report",
+    description: "VM assignments grouped by VSSC division.",
+    icon: <Layers size={20} />,
+    columns: ["vm_name", "users_assigned", "os", "status", "cpus", "max_memory", "node_name"],
+  },
+  {
+    id: "cluster",
+    title: "Cluster Utilization Report",
+    description: "VM distribution and resource use per cluster.",
+    icon: <Server size={20} />,
+    columns: ["vm_name", "cluster_name", "node_name", "cpus", "max_memory", "max_disk", "status", "gpu"],
+  },
+  {
+    id: "compliance",
+    title: "Compliance Report",
+    description: "Unassigned VMs and ownership coverage audit.",
+    icon: <Shield size={20} />,
+    columns: ["vm_name", "users_assigned", "status", "os", "cluster_name", "node_name", "com_focal_point", "end_user_focal_point"],
+  },
+];
+
+// ─── Quick Filter Presets (auto-configure filter panel) ───────────────────────
+const FILTER_PRESETS = [
+  {
+    id: "infrastructure",
+    label: "Infrastructure",
+    description: "All running VMs across every cluster",
+    filters: { status: "running" },
+  },
+  {
+    id: "capacity",
+    label: "Capacity",
+    description: "GPU-enabled high-resource VMs",
+    filters: { gpu: "yes" },
+  },
+  {
+    id: "ownership",
+    label: "Ownership",
+    description: "VMs with at least one assigned user",
+    filters: { assigned: "yes" },
+  },
+  {
+    id: "compliance",
+    label: "Compliance",
+    description: "Unassigned VMs — ownership gaps",
+    filters: { assigned: "no" },
+  },
+  {
+    id: "security",
+    label: "Security Audit",
+    description: "Stopped VMs and unmonitored nodes",
+    filters: { status: "stopped" },
+  },
+];
+
+// ─── KPI mini-card ────────────────────────────────────────────────────────────
+function KpiCard({ label, value, unit, icon, accentClass }) {
+  return (
+    <Card className={`p-4 border-l-4 ${accentClass} flex items-center gap-3`}>
+      <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 shrink-0">
+        {icon}
+      </div>
+      <div>
+        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</div>
+        <div className="text-xl font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+          {value} {unit && <span className="text-xs font-normal text-slate-500">{unit}</span>}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── FilterTag ────────────────────────────────────────────────────────────────
+function FilterTag({ label, onRemove }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 text-xs font-medium rounded-full">
+      {label}
+      <button onClick={onRemove} className="hover:text-red-500 transition-colors"><X size={11} /></button>
+    </span>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function CustomReports() {
+  const { currentTheme } = useTheme();
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const role = user.role || "admin";
+  const tc = getPlotlyTheme(role, currentTheme);
+  const accentBorder = role === "manager" ? "border-l-emerald-500" : "border-l-blue-500";
+  const accentText   = role === "manager" ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400";
+  const accentBg     = role === "manager" ? "bg-emerald-50 dark:bg-emerald-950/20" : "bg-blue-50 dark:bg-blue-950/20";
+  const accentBtn    = role === "manager"
+    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+    : "bg-blue-600 hover:bg-blue-700 text-white";
+
+  // ── Raw Data ───────────────────────────────────────────────────────────────
+  const [proxmoxVms, setProxmoxVms] = useState([]);
+  const [webVms,     setWebVms]     = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(true);
+
+  // ── Filters (client-side) ──────────────────────────────────────────────────
+  const [filterStatus,   setFilterStatus]   = useState("all");
+  const [filterOS,       setFilterOS]       = useState("all");
+  const [filterCluster,  setFilterCluster]  = useState("all");
+  const [filterNode,     setFilterNode]     = useState("all");
+  const [filterGpu,      setFilterGpu]      = useState("all");
+  const [filterAssigned, setFilterAssigned] = useState("all");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo,   setFilterDateTo]   = useState("");
+
+  // ── Report popup ───────────────────────────────────────────────────────────
+  const [showPopup,        setShowPopup]        = useState(false);
+  const [selectedColumns,  setSelectedColumns]  = useState([]);
+  const [selectedFormat,   setSelectedFormat]   = useState("csv");
+  const [exporting,        setExporting]        = useState(false);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [pRes, wRes] = await Promise.all([
+          proxmoxApi.get("/proxmox/vms/vmData"),
+          webApi.get("/vms"),
+        ]);
+        setProxmoxVms(pRes.data || []);
+        setWebVms(wRes.data || []);
+        setError("");
+      } catch (err) {
+        console.error("CustomReports fetch error:", err);
+        setError("Unable to load infrastructure data. Please check backends and try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // ── Build ownership map (vm_uuid → users[]) ────────────────────────────────
+  const ownershipMap = useMemo(() => {
+    const map = {};
+    webVms.forEach((vm) => {
+      if (vm.vm_uuid) map[vm.vm_uuid] = vm.users || [];
+    });
+    return map;
+  }, [webVms]);
+
+  // ── Merge proxmox + web data ───────────────────────────────────────────────
+  const mergedVms = useMemo(() => {
+    return proxmoxVms.map((vm) => ({
+      ...vm,
+      users: ownershipMap[vm.vm_uuid] || [],
+      isAssigned: (ownershipMap[vm.vm_uuid] || []).length > 0,
+    }));
+  }, [proxmoxVms, ownershipMap]);
+
+  // ── Derive unique filter values ────────────────────────────────────────────
+  const filterOptions = useMemo(() => {
+    const statuses  = [...new Set(mergedVms.map((v) => v.status).filter(Boolean))];
+    const osList    = [...new Set(mergedVms.map((v) => v.os).filter(Boolean))];
+    const clusters  = [...new Set(mergedVms.map((v) => v.cluster_name).filter(Boolean))];
+    const nodes     = [...new Set(mergedVms.map((v) => v.node_name).filter(Boolean))];
+    return { statuses, osList, clusters, nodes };
+  }, [mergedVms]);
+
+  // ── Apply filters ──────────────────────────────────────────────────────────
+  const filteredVms = useMemo(() => {
+    return mergedVms.filter((vm) => {
+      if (filterStatus   !== "all" && vm.status?.toLowerCase()      !== filterStatus)   return false;
+      if (filterOS       !== "all" && (vm.os || "")                 !== filterOS)       return false;
+      if (filterCluster  !== "all" && (vm.cluster_name || "")       !== filterCluster)  return false;
+      if (filterNode     !== "all" && (vm.node_name || "")          !== filterNode)      return false;
+      if (filterGpu      === "yes" && !vm.gpu)                                          return false;
+      if (filterGpu      === "no"  && vm.gpu)                                           return false;
+      if (filterAssigned === "yes" && !vm.isAssigned)                                   return false;
+      if (filterAssigned === "no"  && vm.isAssigned)                                    return false;
+      if (filterDateFrom) {
+        const created = vm.created_date ? new Date(vm.created_date) : null;
+        if (!created || created < new Date(filterDateFrom))                              return false;
+      }
+      if (filterDateTo) {
+        const created = vm.created_date ? new Date(vm.created_date) : null;
+        if (!created || created > new Date(filterDateTo))                                return false;
+      }
+      return true;
+    });
+  }, [mergedVms, filterStatus, filterOS, filterCluster, filterNode, filterGpu, filterAssigned, filterDateFrom, filterDateTo]);
+
+  const filteredUuids = useMemo(() => filteredVms.map((v) => v.vm_uuid).filter(Boolean), [filteredVms]);
+
+  // ── KPI summary for filtered set ──────────────────────────────────────────
+  const kpis = useMemo(() => ({
+    total:    filteredVms.length,
+    running:  filteredVms.filter((v) => (v.status || "").toLowerCase() === "running").length,
+    assigned: filteredVms.filter((v) => v.isAssigned).length,
+    gpu:      filteredVms.filter((v) => v.gpu).length,
+  }), [filteredVms]);
+
+  // ── Chart data ─────────────────────────────────────────────────────────────
+  const chartData = useMemo(() => {
+    const statusMap  = {};
+    const osMap      = {};
+    const clusterMap = {};
+    const assignMap  = { "Assigned": 0, "Unassigned": 0 };
+    filteredVms.forEach((vm) => {
+      const st  = (vm.status || "stopped").toLowerCase();
+      const os  = vm.os || "Unknown";
+      const cls = vm.cluster_name || "Unknown";
+      statusMap[st]  = (statusMap[st]  || 0) + 1;
+      osMap[os]       = (osMap[os]       || 0) + 1;
+      clusterMap[cls] = (clusterMap[cls] || 0) + 1;
+      if (vm.isAssigned) assignMap["Assigned"]++; else assignMap["Unassigned"]++;
+    });
+    return { statusMap, osMap, clusterMap, assignMap };
+  }, [filteredVms]);
+
+  // ── Apply quick filter preset ─────────────────────────────────────────────
+  const applyFilterPreset = (preset) => {
+    clearFilters();
+    if (preset.filters.status)   setFilterStatus(preset.filters.status);
+    if (preset.filters.gpu)      setFilterGpu(preset.filters.gpu);
+    if (preset.filters.assigned) setFilterAssigned(preset.filters.assigned);
+  };
+
+  const clearFilters = () => {
+    setFilterStatus("all"); setFilterOS("all"); setFilterCluster("all");
+    setFilterNode("all");   setFilterGpu("all"); setFilterAssigned("all");
+    setFilterDateFrom(""); setFilterDateTo("");
+  };
+
+  const activeFilterCount = [filterStatus, filterOS, filterCluster, filterNode, filterGpu, filterAssigned]
+    .filter((f) => f !== "all").length + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0);
+
+  // ── Open report preset ─────────────────────────────────────────────────────
+  const openPreset = (preset) => {
+    setSelectedColumns(preset.columns);
+    setSelectedFormat("csv");
+    setShowPopup(true);
+  };
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+  const handleDownload = async () => {
+    if (!selectedFormat)           { alert("Please select a format.");          return; }
+    if (!selectedColumns.length)   { alert("Please select at least one column."); return; }
+    if (!filteredUuids.length)     { alert("No VMs match the current filters."); return; }
+    try {
+      setExporting(true);
+      const res = await proxmoxApi.post(
+        "/proxmox/report",
+        { columns: selectedColumns, format: selectedFormat, uuids: filteredUuids },
+        { responseType: selectedFormat === "json" ? "json" : "blob" }
+      );
+      if (selectedFormat === "pdf") {
+        const html = typeof res.data === "string" ? res.data : await res.data.text();
+        const win  = window.open("", "_blank");
+        win.document.write(html);
+        win.document.close();
+      } else {
+        const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = `custom-report.${selectedFormat}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      setShowPopup(false);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageContainer title="Custom Reports">
+        <div className="flex justify-center items-center h-[50vh]">
+          <Loader text="Loading infrastructure data..." />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const selectClass = "w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+  return (
+    <PageContainer
+      title="Custom Reports"
+      description="Build, filter, preview, and export infrastructure reports. All data sourced from live databases."
+    >
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {/* ── SECTION A: Quick Filter Presets ──────────────────────────────── */}
+      <div className="mb-5">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+          Quick Filter Presets
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {FILTER_PRESETS.map((fp) => (
+            <button
+              key={fp.id}
+              onClick={() => applyFilterPreset(fp)}
+              title={fp.description}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border border-transparent transition-all ${accentBg} ${accentText} hover:border-current`}
+            >
+              {fp.label}
+            </button>
+          ))}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 rounded-xl text-sm font-semibold border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 transition-all flex items-center gap-1.5"
+            >
+              <X size={13} /> Clear ({activeFilterCount})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── SECTION B: Filter Builder ─────────────────────────────────────── */}
+      <Card className="mb-5 overflow-hidden">
+        <button
+          className="w-full flex items-center justify-between p-4 text-left"
+          onClick={() => setFiltersOpen((p) => !p)}
+        >
+          <div className="flex items-center gap-2 font-bold text-sm text-slate-800 dark:text-slate-100">
+            <Filter size={15} className={accentText} /> Filter Builder
+            {activeFilterCount > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${accentBg} ${accentText}`}>
+                {activeFilterCount} active
+              </span>
+            )}
+          </div>
+          {filtersOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+        </button>
+
+        {filtersOpen && (
+          <div className="border-t border-slate-100 dark:border-slate-800 p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+
+              {/* Status */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Status</label>
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectClass}>
+                  <option value="all">All</option>
+                  {filterOptions.statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* OS */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">OS</label>
+                <select value={filterOS} onChange={(e) => setFilterOS(e.target.value)} className={selectClass}>
+                  <option value="all">All</option>
+                  {filterOptions.osList.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Cluster */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cluster</label>
+                <select value={filterCluster} onChange={(e) => setFilterCluster(e.target.value)} className={selectClass}>
+                  <option value="all">All</option>
+                  {filterOptions.clusters.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Node */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Node</label>
+                <select value={filterNode} onChange={(e) => setFilterNode(e.target.value)} className={selectClass}>
+                  <option value="all">All</option>
+                  {filterOptions.nodes.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* GPU */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">GPU</label>
+                <select value={filterGpu} onChange={(e) => setFilterGpu(e.target.value)} className={selectClass}>
+                  <option value="all">All</option>
+                  <option value="yes">GPU Enabled</option>
+                  <option value="no">No GPU</option>
+                </select>
+              </div>
+
+              {/* Ownership */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Ownership</label>
+                <select value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className={selectClass}>
+                  <option value="all">All</option>
+                  <option value="yes">Assigned</option>
+                  <option value="no">Unassigned</option>
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Created From</label>
+                <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className={selectClass} />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Created To</label>
+                <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className={selectClass} />
+              </div>
+            </div>
+
+            {/* Active filter tags */}
+            {activeFilterCount > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                {filterStatus   !== "all" && <FilterTag label={`Status: ${filterStatus}`}     onRemove={() => setFilterStatus("all")} />}
+                {filterOS       !== "all" && <FilterTag label={`OS: ${filterOS}`}              onRemove={() => setFilterOS("all")} />}
+                {filterCluster  !== "all" && <FilterTag label={`Cluster: ${filterCluster}`}   onRemove={() => setFilterCluster("all")} />}
+                {filterNode     !== "all" && <FilterTag label={`Node: ${filterNode}`}          onRemove={() => setFilterNode("all")} />}
+                {filterGpu      !== "all" && <FilterTag label={`GPU: ${filterGpu}`}            onRemove={() => setFilterGpu("all")} />}
+                {filterAssigned !== "all" && <FilterTag label={`Assigned: ${filterAssigned}`} onRemove={() => setFilterAssigned("all")} />}
+                {filterDateFrom           && <FilterTag label={`From: ${filterDateFrom}`}     onRemove={() => setFilterDateFrom("")} />}
+                {filterDateTo             && <FilterTag label={`To: ${filterDateTo}`}          onRemove={() => setFilterDateTo("")} />}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {/* ── SECTION C: KPI Summary (filtered) ────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <KpiCard label="Matching VMs"     value={kpis.total}    icon={<Monitor size={18} />}    accentClass={`border-l-4 ${accentBorder}`} />
+        <KpiCard label="Running"          value={kpis.running}  icon={<Activity size={18} />}   accentClass={`border-l-4 ${accentBorder}`} />
+        <KpiCard label="Assigned"         value={kpis.assigned} icon={<HardDrive size={18} />}  accentClass={`border-l-4 ${accentBorder}`} />
+        <KpiCard label="GPU Enabled"      value={kpis.gpu}      icon={<Cpu size={18} />}        accentClass={`border-l-4 ${accentBorder}`} />
+      </div>
+
+      {/* ── SECTION D: Live Preview Charts ───────────────────────────────── */}
+      <div className="mb-6">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+          Analytics Preview — Live ({filteredVms.length} VMs)
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+          {/* Status Donut */}
+          <Card className="p-4 flex flex-col h-[300px]">
+            <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+              <PieChart size={15} className={accentText} /> VM Status
+            </div>
+            <div className="flex-1">
+              <Plot
+                data={[{
+                  type: "pie", hole: 0.5,
+                  labels: Object.keys(chartData.statusMap).map((s) => s.toUpperCase()),
+                  values: Object.values(chartData.statusMap),
+                  textinfo: "label+value",
+                  marker: { colors: tc.colors },
+                  hoverinfo: "label+value+percent"
+                }]}
+                layout={{ ...tc.layout, autosize: true, margin: { t: 10, b: 10, l: 10, r: 10 } }}
+                useResizeHandler style={{ width: "100%", height: "100%" }}
+                config={{ displayModeBar: false, responsive: true }}
+              />
+            </div>
+          </Card>
+
+          {/* Ownership Coverage Donut */}
+          <Card className="p-4 flex flex-col h-[300px]">
+            <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+              <PieChart size={15} className={accentText} /> Ownership Coverage
+            </div>
+            <div className="flex-1">
+              <Plot
+                data={[{
+                  type: "pie", hole: 0.5,
+                  labels: Object.keys(chartData.assignMap),
+                  values: Object.values(chartData.assignMap),
+                  textinfo: "label+percent",
+                  marker: { colors: [tc.primaryColor, "#94a3b8"] },
+                  hoverinfo: "label+value+percent"
+                }]}
+                layout={{ ...tc.layout, autosize: true, margin: { t: 10, b: 10, l: 10, r: 10 } }}
+                useResizeHandler style={{ width: "100%", height: "100%" }}
+                config={{ displayModeBar: false, responsive: true }}
+              />
+            </div>
+          </Card>
+
+          {/* OS Distribution */}
+          <Card className="p-4 flex flex-col h-[300px]">
+            <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+              <BarChart2 size={15} className={accentText} /> OS Distribution
+            </div>
+            <div className="flex-1">
+              <Plot
+                data={[{
+                  type: "bar",
+                  x: Object.keys(chartData.osMap),
+                  y: Object.values(chartData.osMap),
+                  marker: { color: tc.primaryColor },
+                  hoverinfo: "x+y"
+                }]}
+                layout={{ ...tc.layout, autosize: true, margin: { t: 10, b: 60, l: 40, r: 10 } }}
+                useResizeHandler style={{ width: "100%", height: "100%" }}
+                config={{ displayModeBar: false, responsive: true }}
+              />
+            </div>
+          </Card>
+
+          {/* Cluster Distribution */}
+          <Card className="p-4 flex flex-col h-[300px]">
+            <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+              <Server size={15} className={accentText} /> Cluster Distribution
+            </div>
+            <div className="flex-1">
+              <Plot
+                data={[{
+                  type: "bar",
+                  x: Object.keys(chartData.clusterMap),
+                  y: Object.values(chartData.clusterMap),
+                  marker: { color: tc.colors },
+                  hoverinfo: "x+y"
+                }]}
+                layout={{ ...tc.layout, autosize: true, margin: { t: 10, b: 60, l: 40, r: 10 } }}
+                useResizeHandler style={{ width: "100%", height: "100%" }}
+                config={{ displayModeBar: false, responsive: true }}
+              />
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* ── SECTION E: Report Generation Presets ─────────────────────────── */}
+      <div className="mb-6">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+          Generate Report — {filteredVms.length} VMs Selected by Current Filters
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {REPORT_PRESETS.map((preset) => (
+            <Card
+              key={preset.id}
+              className="p-5 cursor-pointer border-2 border-transparent hover:shadow-md transition-all duration-200 group"
+              style={{ borderColor: "transparent" }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = tc.primaryColor + "50"}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = "transparent"}
+              onClick={() => openPreset(preset)}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`p-2.5 ${accentBg} ${accentText} rounded-xl shrink-0 group-hover:opacity-80 transition-opacity`}>
+                  {preset.icon}
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-slate-800 dark:text-slate-100">{preset.title}</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{preset.description}</p>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex flex-wrap gap-1">
+                  {preset.columns.slice(0, 3).map((col) => (
+                    <span key={col} className={`text-[10px] px-1.5 py-0.5 ${accentBg} ${accentText} rounded font-mono`}>
+                      {col}
+                    </span>
+                  ))}
+                  {preset.columns.length > 3 && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
+                      +{preset.columns.length - 3}
+                    </span>
+                  )}
+                </div>
+                <Download size={14} className={`${accentText} shrink-0`} />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* ── SECTION F: Filtered VM Table Preview ─────────────────────────── */}
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <Monitor size={15} className={accentText} /> Filtered VM Preview
+          </div>
+          <Badge variant="info">{filteredVms.length} / {mergedVms.length} VMs</Badge>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50">
+                {["VM Name", "OS", "Status", "Cluster", "Node", "CPU", "RAM", "GPU", "Assigned"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredVms.slice(0, 50).map((vm, i) => (
+                <tr key={vm.vm_uuid || i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                  <td className="px-4 py-2.5 font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{vm.vm_name || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{vm.os || "—"}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      (vm.status || "").toLowerCase() === "running"
+                        ? "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+                        : "bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                    }`}>{(vm.status || "—").toUpperCase()}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-slate-500">{vm.cluster_name || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-500">{vm.node_name    || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-500">{vm.cpus         || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-500">{vm.max_memory   || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs">
+                    {vm.gpu
+                      ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400">GPU</span>
+                      : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs">
+                    {vm.isAssigned
+                      ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400">Yes</span>
+                      : <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">No</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredVms.length > 50 && (
+            <div className="p-4 text-center text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800">
+              Showing first 50 of {filteredVms.length} VMs. Export report for full data.
+            </div>
+          )}
+          {filteredVms.length === 0 && (
+            <div className="p-12 text-center text-slate-400 dark:text-slate-600 text-sm">
+              No VMs match the current filter configuration.
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* ── Report Config Popup ─────────────────────────────────────────────── */}
+      {showPopup && (
+        <ReportPopup
+          availableColumns={ALL_REPORT_FIELDS}
+          selectedColumns={selectedColumns}
+          setSelectedColumns={setSelectedColumns}
+          selectedFormat={selectedFormat}
+          setSelectedFormat={setSelectedFormat}
+          onClose={() => setShowPopup(false)}
+          onDownload={handleDownload}
+        />
+      )}
+    </PageContainer>
+  );
+}

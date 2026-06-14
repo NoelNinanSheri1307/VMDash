@@ -1,0 +1,32 @@
+1)Open CMD as administrator
+Microsoft Windows [Version 10.0.26200.8655]
+(c) Microsoft Corporation. All rights reserved.
+
+2)C:\Windows\System32>mkdir "C:\Program Files\MySQL\MySQL Server 8.4\data"
+
+3)C:\Windows\System32>"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe" --initialize-insecure --datadir="C:\Program Files\MySQL\MySQL Server 8.4\data"
+
+4)C:\Windows\System32>"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe" --install MySQL84 --datadir="C:\Program Files\MySQL\MySQL Server 8.4\data"
+Service successfully installed.
+
+5)C:\Windows\System32>net start MySQL84
+The MySQL84 service is starting.
+The MySQL84 service was started successfully.
+
+6) "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u root
+7)
+CREATE USER 'admin'@'localhost' IDENTIFIED BY 'vssc@123';
+CREATE USER 'admin'@'%' IDENTIFIED BY 'vssc@123';
+CREATE DATABASE ccds_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE proxmox_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON ccds_db.* TO 'admin'@'localhost';
+GRANT ALL PRIVILEGES ON ccds_db.* TO 'admin'@'%';
+GRANT ALL PRIVILEGES ON proxmox_db.* TO 'admin'@'localhost';
+GRANT ALL PRIVILEGES ON proxmox_db.* TO 'admin'@'%';
+FLUSH PRIVILEGES;
+EXIT;
+
+Now go back to normal cmd
+8)"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u admin -pvssc@123 proxmox_db < dbdump.sql
+9)cd ..
+10)run_vmdash.bat

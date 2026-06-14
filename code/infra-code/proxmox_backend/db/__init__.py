@@ -9,6 +9,7 @@ from models.cluster_table import Cluster
 from models.storage_table import Storage
 from models.user_table import EmpDetails
 from models.relation_tables import VmClusterRelation, VmNodeRelation, VmStorageRelation
+from models.report_models import SavedReport, ReportFavorite, ReportTemplate, ReportAuditLog
 from dotenv import load_dotenv
 
 load_dotenv()

@@ -30,6 +30,18 @@ import UserDirectory from './pages/UserDirectory.jsx';
 import VmRequestsManager from './pages/VmRequestsManager.jsx';
 import VmOwnershipConsole from './pages/VmOwnershipConsole.jsx';
 import RequestVmForm from './pages/RequestVmForm.jsx';
+import MyReports from './pages/MyReports.jsx';
+import CustomReports from './pages/CustomReports.jsx';
+import ReportHistory from './pages/ReportHistory.jsx';
+import ReportAuditDashboard from './pages/ReportAuditDashboard.jsx';
+
+// Role-aware redirect for /reports
+function ReportsRedirect() {
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  const role = user.role;
+  if (role === 'user') return <Navigate to="/reports/my-reports" replace />;
+  return <Navigate to="/reports/custom-reports" replace />;
+}
 
 function AppContent() {
   const allRoles = ['admin', 'manager', 'user'];
@@ -67,7 +79,12 @@ function AppContent() {
       <Route path="/analytics/capacity-projection" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><CapacityProjections /></AppLayout></ProtectedRoute>} />
       <Route path="/analytics/my-analytics" element={<ProtectedRoute allowedRoles={userOnly}><AppLayout><MyAnalytics /></AppLayout></ProtectedRoute>} />
 
-      <Route path="/reports" element={<ProtectedRoute allowedRoles={allRoles}><AppLayout><PageContainer title="Custom Reports"><div className="text-slate-500 dark:text-slate-400">Manage custom report schemas and scheduled exports placeholder. Note: You can export reports directly from the Proxmox VMs tab.</div></PageContainer></AppLayout></ProtectedRoute>} />
+      {/* Stage 5 — Reports Center */}
+      <Route path="/reports" element={<ProtectedRoute allowedRoles={allRoles}><ReportsRedirect /></ProtectedRoute>} />
+      <Route path="/reports/my-reports" element={<ProtectedRoute allowedRoles={userOnly}><AppLayout><MyReports /></AppLayout></ProtectedRoute>} />
+      <Route path="/reports/custom-reports" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><CustomReports /></AppLayout></ProtectedRoute>} />
+      <Route path="/reports/history" element={<ProtectedRoute allowedRoles={allRoles}><AppLayout><ReportHistory /></AppLayout></ProtectedRoute>} />
+      <Route path="/reports/audit-dashboard" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><ReportAuditDashboard /></AppLayout></ProtectedRoute>} />
 
       <Route path="/administration/users" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><PageContainer title="Add User Credentials"><Navigate to="/add-user" replace /></PageContainer></AppLayout></ProtectedRoute>} />
       <Route path="/administration/users-list" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><UserDirectory /></AppLayout></ProtectedRoute>} />

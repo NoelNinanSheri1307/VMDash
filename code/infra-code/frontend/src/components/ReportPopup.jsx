@@ -8,6 +8,7 @@ const ReportPopup = ({
   setSelectedFormat,
   onClose,
   onDownload,
+  onSave,
 }) => {
   const [highlightedAvailable, setHighlightedAvailable] = useState([]);
   const [highlightedSelected, setHighlightedSelected] = useState([]);
@@ -138,13 +139,13 @@ const ReportPopup = ({
           <div className="flex flex-col gap-4 items-center mx-2 self-stretch justify-center">
             <button
               onClick={handleAdd}
-              className="w-[120px] py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700"
+              className="w-[120px] py-2 rounded-xl btn-premium-primary text-xs font-bold"
             >
               Add →
             </button>
             <button
               onClick={handleRemove}
-              className="w-[120px] py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700"
+              className="w-[120px] py-2 rounded-xl btn-premium-primary text-xs font-bold"
             >
               ← Remove
             </button>
@@ -178,15 +179,25 @@ const ReportPopup = ({
         </div>
 
         <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-200">
-          <button
-            onClick={onDownload}
-            className="px-8 py-2 rounded-lg bg-green-600 text-white font-bold text-[15px] hover:bg-green-700"
-          >
-            Download
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onDownload}
+              className="px-6 py-2 rounded-xl btn-premium-success text-[13px] font-bold"
+            >
+              Download
+            </button>
+            {onSave && (
+              <button
+                onClick={onSave}
+                className="px-6 py-2 rounded-xl btn-premium-primary text-[13px] font-bold"
+              >
+                Save Config
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="px-8 py-2 rounded-lg bg-red-500 text-white font-bold text-[15px] hover:bg-red-600"
+            className="px-6 py-2 rounded-xl btn-premium-danger text-[13px] font-bold"
           >
             Close
           </button>

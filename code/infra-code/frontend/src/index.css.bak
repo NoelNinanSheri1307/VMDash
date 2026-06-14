@@ -31,3 +31,97 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Role Accents */
+:root[data-role="admin"] {
+  --color-role-primary: #3b82f6;
+  --color-role-primary-hover: #2563eb;
+  --color-role-primary-light: rgba(59, 130, 246, 0.1);
+  --color-role-primary-border: #93c5fd;
+}
+:root[data-role="manager"] {
+  --color-role-primary: #10b981;
+  --color-role-primary-hover: #059669;
+  --color-role-primary-light: rgba(16, 185, 129, 0.1);
+  --color-role-primary-border: #6ee7b7;
+}
+:root[data-role="user"] {
+  --color-role-primary: #ef4444;
+  --color-role-primary-hover: #dc2626;
+  --color-role-primary-light: rgba(239, 68, 68, 0.1);
+  --color-role-primary-border: #fca5a5;
+}
+
+/* Fallback default role */
+:root {
+  --color-role-primary: #3b82f6;
+  --color-role-primary-hover: #2563eb;
+  --color-role-primary-light: rgba(59, 130, 246, 0.1);
+  --color-role-primary-border: #93c5fd;
+}
+
+.bg-role-primary {
+  background-color: var(--color-role-primary) !important;
+}
+.bg-role-primary-hover:hover {
+  background-color: var(--color-role-primary-hover) !important;
+}
+.bg-role-primary-light {
+  background-color: var(--color-role-primary-light) !important;
+}
+.text-role-primary {
+  color: var(--color-role-primary) !important;
+}
+.border-role-primary {
+  border-color: var(--color-role-primary) !important;
+}
+.border-role-primary-light {
+  border-color: var(--color-role-primary-border) !important;
+}
+
+/* Sliding Drawer Styles */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+}
+
+.drawer-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 550px;
+  max-width: 90vw;
+  background-color: #ffffff;
+  box-shadow: -4px 0 24px -4px rgba(0, 0, 0, 0.15);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .drawer-container {
+  background-color: #0F172A;
+  box-shadow: -4px 0 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* Pulsing warning keyframes for unassigned VM audit KPIs */
+@keyframes warning-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.9);
+  }
+}
+
+.kpi-unassigned-pulse {
+  animation: warning-pulse 2.5s infinite ease-in-out;
+}

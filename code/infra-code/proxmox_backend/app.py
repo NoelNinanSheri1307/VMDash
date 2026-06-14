@@ -5,9 +5,11 @@ from db.emp_db_sync import sync_emp_db
 
 app = Flask(__name__)
 sync_emp_db()
-CORS(app, supports_credentials=True)
-CORS(app, supports_credentials = True, origins = ["http://localhost:3000"], methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-     allow_headers = ["Content-Type", "authorization"])
+CORS(app, supports_credentials=True, resources={r"/*": {
+    "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization", "X-User-Staff-Code", "X-User-Role"]
+}})
 
 register_routes(app)
 # print(app.url_map)

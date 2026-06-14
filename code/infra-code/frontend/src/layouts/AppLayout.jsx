@@ -136,8 +136,10 @@ const AppLayout = ({ children }) => {
       title: "Reports",
       icon: <FileSpreadsheet size={18} />,
       roles: ["admin", "manager", "user"],
-      items: [
-        { to: "/reports", label: role === "user" ? "My Reports" : "Custom Reports" }
+      items: role === "user" ? [
+        { to: "/reports/my-reports", label: "My Reports" }
+      ] : [
+        { to: "/reports/custom-reports", label: "Custom Reports" }
       ]
     },
     {

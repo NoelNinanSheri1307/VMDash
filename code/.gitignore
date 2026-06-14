@@ -1,0 +1,10 @@
+# VMDash Root Gitignore
+mysql-data/
+**/venv/
+**/__pycache__/
+*.pyc
+.env
+node_modules/
+dist/
+build/
+*.stage5.bak

@@ -105,6 +105,11 @@ export default function NodesList() {
 
   useEffect(() => {
     fetchNodes();
+    const params = new URLSearchParams(window.location.search);
+    const nodeParam = params.get("node");
+    if (nodeParam) {
+      setSearchTerm(nodeParam);
+    }
   }, []);
 
   const handleSort = (field) => {

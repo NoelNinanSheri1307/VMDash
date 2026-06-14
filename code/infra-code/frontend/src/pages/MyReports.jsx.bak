@@ -1,0 +1,489 @@
+import React, { useEffect, useMemo, useState } from "react";
+import Plot from "react-plotly.js";
+import webApi from "../api/webapi";
+import proxmoxApi from "../api/proxmoxapi";
+import Loader from "../components/Loader";
+import Card from "../components/ui/Card";
+import Badge from "../components/ui/Badge";
+import PageContainer from "../layouts/PageContainer";
+import ReportPopup from "../components/ReportPopup";
+import { useTheme } from "../theme/ThemeProvider";
+import {
+  Monitor, Cpu, HardDrive, Database,
+  FileText, FileSpreadsheet, Download,
+  Users, Activity, BarChart2, PieChart,
+  ClipboardList, Shield, Server
+} from "lucide-react";
+
+// ─── Plotly theme (user = red) ───────────────────────────────────────────────
+const getPlotlyTheme = (theme) => {
+  const isDark = theme === "dark";
+  return {
+    primaryColor: "#ef4444",
+    colors: ["#ef4444", "#f87171", "#fca5a5", "#fecaca", "#fee2e2", "#dc2626"],
+    layout: {
+      paper_bgcolor: "transparent",
+      plot_bgcolor: "transparent",
+      font: { family: "Inter, Roboto, sans-serif", color: isDark ? "#cbd5e1" : "#475569", size: 11 },
+      margin: { t: 30, b: 40, l: 40, r: 15 },
+      showlegend: true,
+      legend: { orientation: "h", y: -0.2, font: { size: 10, color: isDark ? "#cbd5e1" : "#475569" } },
+      xaxis: {
+        gridcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+        tickfont: { color: isDark ? "#94a3b8" : "#64748b" }
+      },
+      yaxis: {
+        gridcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+        tickfont: { color: isDark ? "#94a3b8" : "#64748b" }
+      }
+    }
+  };
+};
+
+// ─── All available report columns (matching proxmox_backend/routes/report.py) ─
+const ALL_REPORT_FIELDS = [
+  { key: "vm_name",                label: "VM Name" },
+  { key: "vm_uuid",                label: "UUID" },
+  { key: "os",                     label: "OS" },
+  { key: "status",                 label: "Status" },
+  { key: "cpus",                   label: "CPUs" },
+  { key: "max_memory",             label: "RAM (GB)" },
+  { key: "max_disk",               label: "Disk (GB)" },
+  { key: "cluster_name",           label: "Cluster" },
+  { key: "node_name",              label: "Node" },
+  { key: "ip",                     label: "IP Address" },
+  { key: "mac",                    label: "MAC Address" },
+  { key: "gpu",                    label: "GPU" },
+  { key: "gpu_info",               label: "GPU Details" },
+  { key: "uptime",                 label: "Uptime" },
+  { key: "live_status",            label: "Live Status" },
+  { key: "created_date",           label: "Created Date" },
+  { key: "users_assigned",         label: "Users Assigned" },
+  { key: "com_focal_point",        label: "COM Focal Point" },
+  { key: "end_user_focal_point",   label: "End User Focal Point" },
+  { key: "prometheus_status",      label: "Prometheus Status" },
+  { key: "software_installed",     label: "Software Installed" },
+  { key: "request_source",         label: "Request Source" },
+];
+
+// ─── Preset report templates ──────────────────────────────────────────────────
+const REPORT_PRESETS = [
+  {
+    id: "inventory",
+    title: "VM Inventory Report",
+    description: "Full inventory of your assigned virtual machines with specs.",
+    icon: <Monitor size={22} />,
+    color: "red",
+    columns: ["vm_name", "os", "status", "cluster_name", "node_name", "cpus", "max_memory", "max_disk"],
+  },
+  {
+    id: "resources",
+    title: "Resource Allocation Report",
+    description: "CPU, RAM, and storage footprint across your assigned VMs.",
+    icon: <Cpu size={22} />,
+    color: "red",
+    columns: ["vm_name", "cpus", "max_memory", "max_disk", "gpu", "gpu_info", "status"],
+  },
+  {
+    id: "status",
+    title: "VM Status Report",
+    description: "Running, stopped, and live-status summary for your VMs.",
+    icon: <Activity size={22} />,
+    color: "red",
+    columns: ["vm_name", "status", "live_status", "uptime", "node_name", "cluster_name"],
+  },
+  {
+    id: "ownership",
+    title: "Ownership Report",
+    description: "Your ownership mapping — VMs linked to your staff profile.",
+    icon: <Users size={22} />,
+    color: "red",
+    columns: ["vm_name", "users_assigned", "com_focal_point", "end_user_focal_point", "os", "status"],
+  },
+];
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+function KpiCard({ icon, label, value, unit, accent = "red" }) {
+  const colors = {
+    red:  { bg: "bg-red-50 dark:bg-red-950/20",    text: "text-red-600 dark:text-red-400",    border: "border-l-red-500" },
+    blue: { bg: "bg-blue-50 dark:bg-blue-950/20",  text: "text-blue-600 dark:text-blue-400",  border: "border-l-blue-500" },
+  };
+  const c = colors[accent] || colors.red;
+  return (
+    <Card className={`flex items-center gap-4 border-l-4 ${c.border}`}>
+      <div className={`p-3 ${c.bg} ${c.text} rounded-xl shrink-0`}>{icon}</div>
+      <div>
+        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{label}</div>
+        <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+          {value} {unit && <span className="text-xs font-normal text-slate-500">{unit}</span>}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function MyReports() {
+  const { currentTheme } = useTheme();
+  const tc = getPlotlyTheme(currentTheme);
+
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const staffCode = user.staff_code || "";
+
+  const [allVms, setAllVms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Report popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedColumns, setSelectedColumns] = useState([]);
+  const [selectedFormat, setSelectedFormat] = useState("csv");
+  const [exporting, setExporting] = useState(false);
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await webApi.get("/vms");
+        setAllVms(res.data || []);
+        setError("");
+      } catch (err) {
+        console.error("MyReports fetch error:", err);
+        setError("Unable to load assigned VM data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // ── Filter to only my assigned VMs ────────────────────────────────────────
+  const myVms = useMemo(() => {
+    return allVms.filter(
+      (vm) => vm.users && vm.users.some((u) => u.staff_code === staffCode)
+    );
+  }, [allVms, staffCode]);
+
+  const myUuids = useMemo(() => myVms.map((v) => v.vm_uuid).filter(Boolean), [myVms]);
+
+  // ── KPI Metrics (derived strictly from assigned VMs only) ─────────────────
+  const kpis = useMemo(() => {
+    const total   = myVms.length;
+    const running = myVms.filter((v) => (v.status || "").toLowerCase() === "running").length;
+    const stopped = myVms.filter((v) => (v.status || "").toLowerCase() === "stopped").length;
+    const cpu     = myVms.reduce((s, v) => s + (Number(v.cores) || 0), 0);
+    const ram     = myVms.reduce((s, v) => s + (Number(v.ram)   || 0), 0);
+    const disk    = myVms.reduce((s, v) => s + (Number(v.disk_size) || 0), 0);
+    return { total, running, stopped, cpu, ram, disk };
+  }, [myVms]);
+
+  // ── Chart Data ────────────────────────────────────────────────────────────
+  const chartData = useMemo(() => {
+    const statusCounts = {};
+    const osCounts = {};
+    const clusterCounts = {};
+    myVms.forEach((vm) => {
+      const st  = (vm.status || "stopped").toLowerCase();
+      const os  = vm.os || "Unknown";
+      const cls = vm.cluster || "Unknown Cluster";
+      statusCounts[st]  = (statusCounts[st]  || 0) + 1;
+      osCounts[os]       = (osCounts[os]       || 0) + 1;
+      clusterCounts[cls] = (clusterCounts[cls] || 0) + 1;
+    });
+    const names  = myVms.map((v) => v.vm_name  || "Unnamed");
+    const cores  = myVms.map((v) => Number(v.cores)    || 0);
+    const ram    = myVms.map((v) => Number(v.ram)      || 0);
+    const disk   = myVms.map((v) => Number(v.disk_size)|| 0);
+    return { statusCounts, osCounts, clusterCounts, names, cores, ram, disk };
+  }, [myVms]);
+
+  // ── Export handler ────────────────────────────────────────────────────────
+  const handleDownload = async () => {
+    if (!selectedFormat) { alert("Please select a format."); return; }
+    if (selectedColumns.length === 0) { alert("Please select at least one column."); return; }
+    try {
+      setExporting(true);
+      const res = await proxmoxApi.post(
+        "/proxmox/report",
+        { columns: selectedColumns, format: selectedFormat, uuids: myUuids },
+        { responseType: selectedFormat === "json" ? "json" : "blob" }
+      );
+      if (selectedFormat === "pdf") {
+        const html = typeof res.data === "string" ? res.data : await res.data.text();
+        const win  = window.open("", "_blank");
+        win.document.write(html);
+        win.document.close();
+      } else {
+        const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = `my-vm-report.${selectedFormat}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      setShowPopup(false);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ── Open a preset ─────────────────────────────────────────────────────────
+  const openPreset = (preset) => {
+    setSelectedColumns(preset.columns);
+    setSelectedFormat("csv");
+    setShowPopup(true);
+  };
+
+  if (loading) {
+    return (
+      <PageContainer title="My Reports">
+        <div className="flex justify-center items-center h-[50vh]">
+          <Loader text="Loading your assigned VM data..." />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer
+      title="My Reports"
+      description={`Personal report generation for Staff Code: ${staffCode}. All data is derived exclusively from your assigned virtual machines.`}
+    >
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {/* No VMs state */}
+      {myVms.length === 0 && !error ? (
+        <Card className="text-center py-16 text-slate-500">
+          <Monitor className="mx-auto text-slate-300 dark:text-slate-700 mb-3" size={48} />
+          <div className="text-lg font-bold">No Assigned VMs Found</div>
+          <p className="text-sm mt-1 max-w-md mx-auto">
+            No virtual machines are currently linked to your employee profile. Contact your administrator.
+          </p>
+        </Card>
+      ) : (
+        <>
+          {/* ── SECTION A: KPI Cards ─────────────────────────────────────── */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <KpiCard icon={<Monitor size={20} />}   label="My VMs"              value={kpis.total}   />
+            <KpiCard icon={<Activity size={20} />}  label="Running"             value={kpis.running} />
+            <KpiCard icon={<Server size={20} />}    label="Stopped"             value={kpis.stopped} />
+            <KpiCard icon={<Cpu size={20} />}       label="My CPU Allocation"   value={kpis.cpu}     unit="Cores" />
+            <KpiCard icon={<HardDrive size={20} />} label="My RAM Allocation"   value={kpis.ram}     unit="GB" />
+            <KpiCard icon={<Database size={20} />}  label="My Storage Allocation" value={kpis.disk}  unit="GB" />
+          </div>
+
+          {/* ── SECTION B: Analytics Charts ──────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+            {/* VM Status Distribution */}
+            <Card className="p-4 flex flex-col h-[340px]">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <PieChart size={16} className="text-red-500" /> VM Status Distribution
+                </h3>
+                <Badge variant="info">My VMs</Badge>
+              </div>
+              <div className="flex-1">
+                <Plot
+                  data={[{
+                    type: "pie", hole: 0.55,
+                    labels: Object.keys(chartData.statusCounts).map((s) => s.toUpperCase()),
+                    values: Object.values(chartData.statusCounts),
+                    textinfo: "percent+value",
+                    marker: { colors: tc.colors },
+                    hoverinfo: "label+value+percent"
+                  }]}
+                  layout={{ ...tc.layout, autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }}
+                  useResizeHandler style={{ width: "100%", height: "100%" }}
+                  config={{ displayModeBar: false, responsive: true }}
+                />
+              </div>
+            </Card>
+
+            {/* OS Distribution */}
+            <Card className="p-4 flex flex-col h-[340px]">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <BarChart2 size={16} className="text-red-500" /> OS Distribution
+                </h3>
+                <Badge variant="info">My VMs</Badge>
+              </div>
+              <div className="flex-1">
+                <Plot
+                  data={[{
+                    type: "bar",
+                    x: Object.keys(chartData.osCounts),
+                    y: Object.values(chartData.osCounts),
+                    marker: { color: tc.primaryColor },
+                    hoverinfo: "x+y"
+                  }]}
+                  layout={{ ...tc.layout, autosize: true, margin: { t: 20, b: 60, l: 40, r: 10 } }}
+                  useResizeHandler style={{ width: "100%", height: "100%" }}
+                  config={{ displayModeBar: false, responsive: true }}
+                />
+              </div>
+            </Card>
+
+            {/* Resource Footprint */}
+            <Card className="p-4 flex flex-col h-[340px]">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Cpu size={16} className="text-red-500" /> Resource Footprint
+                </h3>
+                <Badge variant="info">CPU / RAM / Disk</Badge>
+              </div>
+              <div className="flex-1">
+                <Plot
+                  data={[
+                    { type: "bar", name: "Cores",    x: chartData.names, y: chartData.cores, marker: { color: tc.colors[0] } },
+                    { type: "bar", name: "RAM (GB)", x: chartData.names, y: chartData.ram,   marker: { color: tc.colors[1] } },
+                    { type: "bar", name: "Disk (GB)",x: chartData.names, y: chartData.disk,  marker: { color: tc.colors[2] } },
+                  ]}
+                  layout={{ ...tc.layout, barmode: "group", autosize: true, margin: { t: 20, b: 60, l: 40, r: 10 } }}
+                  useResizeHandler style={{ width: "100%", height: "100%" }}
+                  config={{ displayModeBar: false, responsive: true }}
+                />
+              </div>
+            </Card>
+
+            {/* Cluster Distribution */}
+            <Card className="p-4 flex flex-col h-[340px]">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Server size={16} className="text-red-500" /> Cluster Distribution
+                </h3>
+                <Badge variant="info">My VMs</Badge>
+              </div>
+              <div className="flex-1">
+                <Plot
+                  data={[{
+                    type: "pie", hole: 0.45,
+                    labels: Object.keys(chartData.clusterCounts),
+                    values: Object.values(chartData.clusterCounts),
+                    textinfo: "label+percent",
+                    marker: { colors: tc.colors },
+                    hoverinfo: "label+value+percent"
+                  }]}
+                  layout={{ ...tc.layout, autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }}
+                  useResizeHandler style={{ width: "100%", height: "100%" }}
+                  config={{ displayModeBar: false, responsive: true }}
+                />
+              </div>
+            </Card>
+          </div>
+
+          {/* ── SECTION C: Report Generation Presets ─────────────────────── */}
+          <div className="mb-2">
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-1">Generate Report</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Select a report type. Columns are pre-configured — you can customise before downloading.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {REPORT_PRESETS.map((preset) => (
+                <Card
+                  key={preset.id}
+                  className="p-5 cursor-pointer hover:border-red-400 dark:hover:border-red-600 hover:shadow-md transition-all duration-200 border-2 border-transparent group"
+                  onClick={() => openPreset(preset)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-xl shrink-0 group-hover:bg-red-100 dark:group-hover:bg-red-950/40 transition-colors">
+                      {preset.icon}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-slate-800 dark:text-slate-100">{preset.title}</div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                        {preset.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex flex-wrap gap-1">
+                      {preset.columns.slice(0, 3).map((col) => (
+                        <span key={col} className="text-[10px] px-1.5 py-0.5 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded font-mono">
+                          {col}
+                        </span>
+                      ))}
+                      {preset.columns.length > 3 && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
+                          +{preset.columns.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                    <Download size={14} className="text-red-500 shrink-0" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* ── SECTION D: Assigned VMs Quick Table ──────────────────────── */}
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <ClipboardList size={16} className="text-red-500" /> My Assigned VMs
+              </h3>
+              <Badge variant="info">{myVms.length} total</Badge>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50">
+                    {["VM Name", "OS", "Status", "CPU", "RAM (GB)", "Disk (GB)", "Cluster"].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {myVms.map((vm, i) => (
+                    <tr key={vm.vm_name || i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">{vm.vm_name || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{vm.os || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          (vm.status || "").toLowerCase() === "running"
+                            ? "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+                            : "bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                        }`}>
+                          {(vm.status || "stopped").toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{vm.cores || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{vm.ram || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{vm.disk_size || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">{vm.cluster || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* ── Report Config Popup ────────────────────────────────────────────── */}
+      {showPopup && (
+        <ReportPopup
+          availableColumns={ALL_REPORT_FIELDS}
+          selectedColumns={selectedColumns}
+          setSelectedColumns={setSelectedColumns}
+          selectedFormat={selectedFormat}
+          setSelectedFormat={setSelectedFormat}
+          onClose={() => setShowPopup(false)}
+          onDownload={handleDownload}
+        />
+      )}
+    </PageContainer>
+  );
+}

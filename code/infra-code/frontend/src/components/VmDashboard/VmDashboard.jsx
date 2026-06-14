@@ -13,7 +13,7 @@ import { CPU_THRESHOLD, RAM_THRESHOLD, DISK_THRESHOLD } from "../../constants/vm
 import { useTheme } from "../../theme/ThemeProvider";
 import { 
     Monitor, Play, Square, Activity, Users, ShieldAlert, BarChart2, 
-    ChevronDown, ChevronUp, Download, Search, SlidersHorizontal, ArrowUpDown 
+    ChevronDown, ChevronUp, Download, Search, SlidersHorizontal, ArrowUpDown, X 
 } from "lucide-react";
 
 // Auditing duplicate VM names validation
@@ -191,6 +191,18 @@ const VmDashboard = () => {
 
     useEffect(() => {
         fetchVmsData();
+        const params = new URLSearchParams(window.location.search);
+        const searchParam = params.get("search") || params.get("q");
+        const osParam = params.get("os");
+        const statusParam = params.get("status");
+        const clusterParam = params.get("cluster");
+        const nodeParam = params.get("node");
+        
+        if (searchParam) setSearch(searchParam);
+        if (osParam) setFilterOs(osParam);
+        if (statusParam) setQuickStatus(statusParam);
+        if (clusterParam) setFilterCluster(clusterParam);
+        if (nodeParam) setFilterNode(nodeParam);
     }, []);
 
     useEffect(() => {
@@ -437,6 +449,141 @@ const VmDashboard = () => {
         return result;
     }, [filteredVms, smartSort, sortKey, sortAsc]);
 
+    // KPI card toggle filter triggers
+    const handleKpiClick = (label) => {
+        if (label === "Total VMs") {
+            setSearch("");
+            setQuickStatus("all");
+            setQuickOwnership("all");
+            setQuickResource("all");
+            setFilterOs("");
+            setFilterCluster("");
+            setFilterNode("");
+        } else if (label === "Running VMs") {
+            setQuickStatus(quickStatus === "running" ? "all" : "running");
+        } else if (label === "Stopped VMs") {
+            setQuickStatus(quickStatus === "stopped" ? "all" : "stopped");
+        } else if (label === "GPU Enabled") {
+            setQuickResource(quickResource === "gpu" ? "all" : "gpu");
+        } else if (label === "Assigned VMs") {
+            setQuickOwnership(quickOwnership === "assigned" ? "all" : "assigned");
+        } else if (label === "Unassigned VMs") {
+            setQuickOwnership(quickOwnership === "unassigned" ? "all" : "unassigned");
+        }
+        setCurrentPage(1);
+    };
+
+    // Active filter badges list compiler
+    const activeBadges = useMemo(() => {
+        const list = [];
+        if (search) list.push({ key: "search", label: `Search: "${search}"`, clear: () => setSearch("") });
+        if (quickStatus !== "all") list.push({ key: "status", label: `Status: ${quickStatus}`, clear: () => setQuickStatus("all") });
+        if (quickOwnership !== "all") list.push({ key: "owner", label: `Owner: ${quickOwnership}`, clear: () => setQuickOwnership("all") });
+        if (quickResource !== "all") list.push({ key: "resource", label: `Resource: ${quickResource}`, clear: () => setQuickResource("all") });
+        if (filterCluster) list.push({ key: "cluster", label: `Cluster: ${filterCluster}`, clear: () => setFilterCluster("") });
+        if (filterNode) list.push({ key: "node", label: `Node: ${filterNode}`, clear: () => setFilterNode("") });
+        if (filterOs) list.push({ key: "os", label: `OS: ${filterOs}`, clear: () => setFilterOs("") });
+        
+        // Advanced filters
+        if (advStatus) list.push({ key: "advStatus", label: `Status: ${advStatus}`, clear: () => setAdvStatus("") });
+        if (advCluster) list.push({ key: "advCluster", label: `Cluster: ${advCluster}`, clear: () => setAdvCluster("") });
+        if (advNode) list.push({ key: "advNode", label: `Node: ${advNode}`, clear: () => setAdvNode("") });
+        if (advOs) list.push({ key: "advOs", label: `OS: ${advOs}`, clear: () => setAdvOs("") });
+        if (advGpu) list.push({ key: "advGpu", label: `GPU: ${advGpu}`, clear: () => setAdvGpu("") });
+        if (advEntity) list.push({ key: "advEntity", label: `Entity: ${advEntity}`, clear: () => setAdvEntity("") });
+        if (advDivision) list.push({ key: "advDivision", label: `Division: ${advDivision}`, clear: () => setAdvDivision("") });
+        if (advGroup) list.push({ key: "advGroup", label: `Group: ${advGroup}`, clear: () => setAdvGroup("") });
+        
+        return list;
+    }, [search, quickStatus, quickOwnership, quickResource, filterCluster, filterNode, filterOs, advStatus, advCluster, advNode, advOs, advGpu, advEntity, advDivision, advGroup]);
+
+    const handleResetAllFilters = () => {
+        setSearch("");
+        setQuickStatus("all");
+        setQuickOwnership("all");
+        setQuickResource("all");
+        setFilterCluster("");
+        setFilterNode("");
+        setFilterOs("");
+        setAdvStatus("");
+        setAdvCluster("");
+        setAdvNode("");
+        setAdvOs("");
+        setAdvGpu("");
+        setAdvEntity("");
+        setAdvDivision("");
+        setAdvGroup("");
+        setCurrentPage(1);
+        window.history.pushState({}, document.title, window.location.pathname);
+    };
+
+    // Sunburst (Cluster -> Node -> VM) data compiler
+    const sunburstData = useMemo(() => {
+        const ids = ["Infrastructure"];
+        const labels = ["Infrastructure"];
+        const parents = [""];
+
+        const clss = new Set();
+        const nds = new Map();
+        const vList = [];
+
+        processedVms.forEach(v => {
+            const c = v.cluster_name || "Standalone";
+            const n = v.node_name || "Unknown Node";
+            clss.add(c);
+            nds.set(n, c);
+            vList.push({ id: `Infrastructure/${c}/${n}/${v.vm_name}`, name: v.vm_name, parent: `Infrastructure/${c}/${n}` });
+        });
+
+        clss.forEach(c => {
+            ids.push(`Infrastructure/${c}`);
+            labels.push(c);
+            parents.push("Infrastructure");
+        });
+
+        nds.forEach((c, n) => {
+            ids.push(`Infrastructure/${c}/${n}`);
+            labels.push(n);
+            parents.push(`Infrastructure/${c}`);
+        });
+
+        vList.forEach(v => {
+            ids.push(v.id);
+            labels.push(v.name);
+            parents.push(v.parent);
+        });
+
+        return { ids, labels, parents };
+    }, [processedVms]);
+
+    // Plotly click logic inside Sunburst chart
+    const handleSunburstClick = (data) => {
+        if (!data || !data.points || !data.points[0]) return;
+        const pt = data.points[0];
+        const id = pt.id;
+        if (!id || id === "Infrastructure") return;
+
+        // Check if VM leaf node
+        if (id.includes("/") && id.split("/").length > 3) {
+            const parts = id.split("/");
+            const vmName = parts[parts.length - 1];
+            const match = processedVms.find(v => (v.vm_name || "").toLowerCase() === vmName.toLowerCase());
+            if (match) {
+                setActiveDrawerVm(match);
+                setIsDrawerOpen(true);
+            }
+        } else {
+            // Is cluster or node
+            const parts = id.split("/");
+            if (parts.length === 2) {
+                setFilterCluster(parts[1]);
+            } else if (parts.length === 3) {
+                setFilterNode(parts[2]);
+            }
+            setCurrentPage(1);
+        }
+    };
+
     // Plotly aggregations memoizations
     const chartsData = useMemo(() => {
         const runCount = processedVms.filter(v => v.status === "running").length;
@@ -570,7 +717,7 @@ const VmDashboard = () => {
 
             const payload = {
                 columns: cols,
-                format: format === "pdf" ? "pdf" : format
+                format: format
             };
 
             // Limit query to selection if bulk is active
@@ -580,30 +727,67 @@ const VmDashboard = () => {
                 payload.uuids = assignedVmUuids;
             }
 
+            const isJson = format === "json";
+
             const response = await proxmoxApi.post(
                 "/proxmox/report",
                 payload,
-                { responseType: "blob" }
+                { responseType: isJson ? "json" : "blob" }
             );
 
-            const blob = new Blob([response.data], { type: response.headers["content-type"] });
-            const url = window.URL.createObjectURL(blob);
-            
             if (format === "pdf") {
-                window.open(url, "_blank");
-                setTimeout(() => window.URL.revokeObjectURL(url), 5000);
-            } else {
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `vm-report.${format}`;
+                // PDF: get raw HTML, open in new window
+                const rawText = response.data instanceof Blob
+                    ? await response.data.text()
+                    : typeof response.data === "string"
+                    ? response.data
+                    : JSON.stringify(response.data);
+                const win = window.open("", "_blank");
+                if (win) {
+                    win.document.write(rawText);
+                    win.document.close();
+                } else {
+                    const blob = new Blob([rawText], { type: "text/html" });
+                    const url  = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href     = url;
+                    link.download = "vm-report.html";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }
+            } else if (isJson) {
+                const jsonStr = JSON.stringify(response.data, null, 2);
+                const blob    = new Blob([jsonStr], { type: "application/json" });
+                const url     = URL.createObjectURL(blob);
+                const link    = document.createElement("a");
+                link.href     = url;
+                link.download = "vm-report.json";
+                document.body.appendChild(link);
                 link.click();
-                window.URL.revokeObjectURL(url);
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } else {
+                const mimeTypes = { csv: "text/csv", xls: "application/vnd.ms-excel" };
+                const mimeType  = mimeTypes[format] || "application/octet-stream";
+                const blob = new Blob([response.data], { type: mimeType });
+                const url  = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href     = url;
+                link.download = `vm-report.${format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
             }
+
             setShowPopup(false);
             showToast("success", `Report successfully exported.`);
         } catch (err) {
             console.error("Export report failed", err);
-            showToast("error", "Failed to generate report export.");
+            const msg = err.response?.data?.error || err.message || "Failed to generate report export.";
+            showToast("error", msg);
         }
     };
 
@@ -699,7 +883,8 @@ const VmDashboard = () => {
                     return (
                         <div 
                             key={idx} 
-                            className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm border-l-4 ${kpi.border} ${
+                            onClick={() => handleKpiClick(kpi.label)}
+                            className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm border-l-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group ${kpi.border} ${
                                 kpi.isAlert && kpis.unassigned > 0 ? "kpi-unassigned-pulse bg-rose-50/10 dark:bg-rose-950/10 border-rose-500" : ""
                             }`}
                         >
@@ -719,6 +904,40 @@ const VmDashboard = () => {
                 })}
             </div>
 
+            {/* Filters Scope Banner */}
+            {activeBadges.length > 0 && (
+                <div className="mx-8 mb-5 bg-blue-50/30 dark:bg-slate-900/50 border border-blue-100/60 dark:border-slate-800/80 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 animate-slide-in">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Active Filters:</span>
+                        {activeBadges.map((badge, idx) => (
+                            <span
+                                key={idx}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100/40 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-200/30 dark:border-blue-900/30 font-mono"
+                            >
+                                <span className="font-bold">{badge.label}</span>
+                                <button
+                                    onClick={badge.clear}
+                                    className="hover:text-red-500 transition-colors focus:outline-none"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
+                            {sortedVms.length} / {processedVms.length} VMs matching
+                        </span>
+                        <button
+                            onClick={handleResetAllFilters}
+                            className="px-4 py-1.5 bg-red-100 hover:bg-red-200/80 text-red-650 dark:text-red-400 text-xs font-bold rounded-xl border border-red-200/50 dark:border-red-900/40 transition"
+                        >
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Collapsible Analytics Strip Toggle */}
             <div className="px-8 mb-5">
                 <button 
@@ -733,7 +952,7 @@ const VmDashboard = () => {
                 </button>
 
                 {showAnalytics && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-4 bg-slate-50 dark:bg-slate-900/10 p-4 border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-inner">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-4 bg-slate-50 dark:bg-slate-900/10 p-4 border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-inner">
                         {/* Status Donut */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">VM Status Ratio</h3>
@@ -748,6 +967,13 @@ const VmDashboard = () => {
                                         marker: { colors: [chartTheme.primary, "#cbd5e1"] },
                                         hoverinfo: "label+percent"
                                     }]}
+                                    onClick={(data) => {
+                                        if (data?.points?.[0]) {
+                                            const label = String(data.points[0].label).toLowerCase();
+                                            setQuickStatus(quickStatus === label ? "all" : label);
+                                            setCurrentPage(1);
+                                        }
+                                    }}
                                     layout={{ ...chartTheme.layout, showlegend: false }}
                                     useResizeHandler
                                     style={{ width: "100%", height: "100%" }}
@@ -768,6 +994,13 @@ const VmDashboard = () => {
                                         x: chartsData.os.values,
                                         marker: { color: chartTheme.colors }
                                     }]}
+                                    onClick={(data) => {
+                                        if (data?.points?.[0]?.y) {
+                                            const os = data.points[0].y;
+                                            setFilterOs(filterOs === os ? "" : os);
+                                            setCurrentPage(1);
+                                        }
+                                    }}
                                     layout={{ ...chartTheme.layout, showlegend: false }}
                                     useResizeHandler
                                     style={{ width: "100%", height: "100%" }}
@@ -776,7 +1009,7 @@ const VmDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Cluster Distribution */}
+                        {/* Cluster Workloads */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Cluster Workloads</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
@@ -787,6 +1020,13 @@ const VmDashboard = () => {
                                         y: chartsData.cluster.values,
                                         marker: { color: chartTheme.primary }
                                     }]}
+                                    onClick={(data) => {
+                                        if (data?.points?.[0]?.x) {
+                                            const cluster = data.points[0].x;
+                                            setFilterCluster(filterCluster === cluster ? "" : cluster);
+                                            setCurrentPage(1);
+                                        }
+                                    }}
                                     layout={{ ...chartTheme.layout, showlegend: false }}
                                     useResizeHandler
                                     style={{ width: "100%", height: "100%" }}
@@ -807,6 +1047,13 @@ const VmDashboard = () => {
                                         marker: { colors: [chartTheme.primary, "#fca5a5"] },
                                         hoverinfo: "label+percent"
                                     }]}
+                                    onClick={(data) => {
+                                        if (data?.points?.[0]?.label) {
+                                            const label = String(data.points[0].label).toLowerCase();
+                                            setQuickOwnership(quickOwnership === label ? "all" : label);
+                                            setCurrentPage(1);
+                                        }
+                                    }}
                                     layout={{ ...chartTheme.layout, showlegend: false }}
                                     useResizeHandler
                                     style={{ width: "100%", height: "100%" }}
@@ -827,6 +1074,36 @@ const VmDashboard = () => {
                                         x: chartsData.node.values,
                                         marker: { color: chartTheme.colors }
                                     }]}
+                                    onClick={(data) => {
+                                        if (data?.points?.[0]?.y) {
+                                            const node = data.points[0].y;
+                                            setFilterNode(filterNode === node ? "" : node);
+                                            setCurrentPage(1);
+                                        }
+                                    }}
+                                    layout={{ ...chartTheme.layout, showlegend: false }}
+                                    useResizeHandler
+                                    style={{ width: "100%", height: "100%" }}
+                                    config={{ displayModeBar: false, responsive: true }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Sunburst workloads Hierarchy */}
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                            <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Sunburst Hierarchy</h3>
+                            <div className="flex-1 min-h-[160px] flex items-center justify-center">
+                                <Plot 
+                                    data={[{
+                                        type: "sunburst",
+                                        ids: sunburstData.ids,
+                                        labels: sunburstData.labels,
+                                        parents: sunburstData.parents,
+                                        branchvalues: "total",
+                                        hoverinfo: "label+value",
+                                        marker: { line: { width: 0.5 }, colors: chartTheme.colors }
+                                    }]}
+                                    onClick={handleSunburstClick}
                                     layout={{ ...chartTheme.layout, showlegend: false }}
                                     useResizeHandler
                                     style={{ width: "100%", height: "100%" }}

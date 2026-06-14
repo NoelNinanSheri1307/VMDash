@@ -5,6 +5,30 @@ import StorageList from "./StorageList";
 import UserList from "./UserList";
 import { UserPlus, UserMinus } from "lucide-react";
 
+const formatUptime = (seconds) => {
+    if (seconds === null || seconds === undefined) return "N/A";
+    const sec = Number(seconds);
+    if (isNaN(sec) || sec <= 0) return "Offline";
+    const days = Math.floor(sec / (3600 * 24));
+    const hours = Math.floor((sec % (3600 * 24)) / 3600);
+    const minutes = Math.floor((sec % 3600) / 60);
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    return parts.length > 0 ? parts.join(" ") : "< 1m";
+};
+
+const formatGB = (gb) => {
+    if (gb === null || gb === undefined) return "N/A";
+    const val = Number(gb);
+    if (val >= 1024) {
+        return `${(val / 1024).toFixed(1)} TB`;
+    }
+    return `${val.toFixed(1)} GB`;
+};
+
 const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canManageUsers }) => {
     const [expanded, setExpanded] = useState(false);
     const [details, setDetails] = useState(null);
@@ -67,7 +91,37 @@ const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canMan
             <tr onClick = {toggleExpand} className = "cursor-pointer transition duration-150 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-300">
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-medium text-slate-500 dark:text-slate-500 text-center">{serialNumber}</td>
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono text-slate-800 dark:text-slate-200">{vm.vm_id}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-semibold text-slate-950 dark:text-slate-50">{vm.vm_name}</td>
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-semibold text-slate-950 dark:text-slate-50 relative group">
+                    <span className="hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-150">{vm.vm_name}</span>
+                    <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 hidden group-hover:block w-64 p-4 rounded-xl bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-150 border border-slate-200 dark:border-slate-800 shadow-xl z-[999] pointer-events-none transition-all duration-200 animate-slide-in">
+                        <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 border-b border-slate-100 dark:border-slate-800 pb-1 flex items-center justify-between">
+                            <span>VM Preview</span>
+                            <span className={`w-2 h-2 rounded-full ${vm.status === "running" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+                        </h4>
+                        <div className="space-y-1.5 text-xs text-left">
+                            <div className="flex justify-between">
+                                <span className="text-slate-400 font-medium">Cluster:</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">{vm.cluster_name || "Standalone"}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400 font-medium">Node:</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">{vm.node_name}</span>
+                            </div>
+                            <div className="flex justify-between font-mono">
+                                <span className="text-slate-400 font-medium font-sans">IP Address:</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350 select-all">{vm.vm_ip || "—"}</span>
+                            </div>
+                            <div className="flex justify-between font-mono">
+                                <span className="text-slate-400 font-medium font-sans">Resources:</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">{vm.vm_cpu}C / {formatGB(vm.vm_max_mem)} / {formatGB(vm.vm_max_disk)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400 font-medium">Uptime:</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">{formatUptime(vm.uptime)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80">{vm.cluster_name}</td>
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80">{vm.node_name}</td>
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono">{vm.vm_ip}</td>

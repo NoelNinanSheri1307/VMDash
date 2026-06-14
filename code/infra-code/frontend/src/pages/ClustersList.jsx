@@ -6,7 +6,7 @@ import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import Plot from "react-plotly.js";
 import { useTheme } from "../theme/ThemeProvider";
-import { Layers, CheckCircle2, XCircle, Server, Monitor, Cpu, HardDrive, Database } from "lucide-react";
+import { Layers, CheckCircle2, XCircle, Server, Monitor, Cpu, HardDrive, Database, Search } from "lucide-react";
 
 // Format size from GB to appropriate label
 const formatGB = (gb) => {
@@ -66,6 +66,7 @@ export default function ClustersList() {
   const [vms, setVms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const themeConfig = useMemo(() => getPlotlyTheme(role, currentTheme), [role, currentTheme]);
 
@@ -92,6 +93,11 @@ export default function ClustersList() {
 
   useEffect(() => {
     fetchClusterDashboard();
+    const params = new URLSearchParams(window.location.search);
+    const clusterParam = params.get("cluster");
+    if (clusterParam) {
+      setSearchTerm(clusterParam);
+    }
   }, []);
 
   // Compute Cluster Metrics
@@ -122,6 +128,15 @@ export default function ClustersList() {
       };
     });
   }, [clusters, nodes, vms]);
+
+  // Filter cluster data based on search input
+  const filteredClusterData = useMemo(() => {
+    if (!searchTerm) return clusterData;
+    const query = searchTerm.toLowerCase().trim();
+    return clusterData.filter((c) =>
+      c.cluster_name?.toLowerCase().includes(query)
+    );
+  }, [clusterData, searchTerm]);
 
   if (loading) {
     return (
@@ -162,9 +177,26 @@ export default function ClustersList() {
         </Card>
       ) : (
         <div className="space-y-8">
+          {/* Search bar */}
+          <Card className="p-0 overflow-hidden mb-6">
+            <div className="p-4 border-b border-slate-150 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/10 flex items-center gap-2">
+              <Search className="text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search clusters by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-800 dark:text-slate-100 placeholder-slate-400"
+              />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm("")} className="text-xs text-slate-400 hover:text-slate-600 transition">Clear</button>
+              )}
+            </div>
+          </Card>
+
           {/* Cluster Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clusterData.map((cluster, idx) => (
+            {filteredClusterData.map((cluster, idx) => (
               <Card key={idx} className="flex flex-col justify-between gap-5 relative overflow-hidden group border-t-4 border-t-role-primary">
                 {/* Background watermarked icon */}
                 <div className="absolute right-0 top-0 h-20 w-20 bg-role-primary bg-opacity-5 rounded-bl-full flex items-center justify-end p-3 transition-all duration-300 group-hover:scale-115">

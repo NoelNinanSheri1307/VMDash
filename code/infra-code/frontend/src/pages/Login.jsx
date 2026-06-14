@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import webApi from "../api/webapi";
-import bg from '../assets/bg4.png';
+import isroLogo from "../assets/isrologo.svg";
+import ParticleBackground from "../components/ParticleBackground";
 
 const Login = () => {
   const [staffCode, setStaffCode] = useState("");
@@ -12,8 +13,46 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isResetMode, setIsResetMode] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Typewriter sub-header phrases
+  const typewriterPhrases = [
+    "Virtual Machine Operations Center",
+    "Infrastructure Monitoring & Analytics",
+    "Resource Governance Platform",
+    "Hypervisor Management Interface"
+  ];
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [subText, setSubText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    const currentPhrase = typewriterPhrases[phraseIndex];
+
+    if (isDeleting) {
+      timer = setTimeout(() => {
+        setSubText(currentPhrase.substring(0, subText.length - 1));
+      }, 10); // backspace speed (faster for smoother feel)
+    } else {
+      timer = setTimeout(() => {
+        setSubText(currentPhrase.substring(0, subText.length + 1));
+      }, 25); // typing speed (faster for smoother feel)
+    }
+
+    if (!isDeleting && subText === currentPhrase) {
+      timer = setTimeout(() => {
+        setIsDeleting(true);
+      }, 3000); // pause at full text
+    } else if (isDeleting && subText === "") {
+      setIsDeleting(false);
+      setPhraseIndex((prev) => (prev + 1) % typewriterPhrases.length);
+    }
+
+    return () => clearTimeout(timer);
+  }, [subText, isDeleting, phraseIndex]);
 
   // Check if user is already logged in - redirect away from login page
   useEffect(() => {
@@ -47,12 +86,9 @@ const Login = () => {
   // Show loading while checking auth
   if (checkingAuth) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center overflow-hidden font-sans relative">
-        <div
-          className="absolute inset-0 -z-10 bg-center bg-cover bg-no-repeat"
-          style={{ backgroundImage: `url(${bg})` }}
-        />
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl px-10 py-10 shadow-lg border border-white/30">
+      <div style={{ minHeight: "100vh", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "sans-serif", position: "relative", backgroundColor: "#000" }}>
+        <ParticleBackground />
+        <div style={{ position: "relative", zIndex: 10, background: "rgba(255,255,255,0.06)", backdropFilter: "blur(12px)", borderRadius: "16px", padding: "40px", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.8)" }}>
           Checking...
         </div>
       </div>
@@ -119,151 +155,122 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center overflow-hidden font-sans relative">
-      <div
-        className="absolute inset-0 -z-10 bg-center bg-cover bg-no-repeat"
-        style={{ backgroundImage: `url(${bg})` }}
-      />
+    <div style={{ minHeight: "100vh", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "sans-serif", position: "relative", backgroundColor: "#000" }}>
+      
+      {/* Lightweight Canvas Particle Background */}
+      <ParticleBackground />
 
-      <div className="absolute top-1/2 left-[5%] -translate-y-1/2 flex flex-col items-center justify-center px-10 py-10 max-w-[550px] w-[40%] min-w-[450px]">
-        <h1 className="w-full text-center text-[#1f2a56] text-[42px] font-extrabold tracking-[1px] uppercase whitespace-nowrap mb-[15px]">
-          {isResetMode ? "RESET PASSWORD" : "LOGIN"}
+      {/* Glassmorphic Login Card */}
+      <div style={{ position: "absolute", top: "50%", left: "5%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px", maxWidth: "550px", width: "40%", minWidth: "450px", background: "rgba(255,255,255,0.06)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: "20px", boxShadow: "0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06) inset", zIndex: 10 }}>
+        
+        {/* VSSC ISRO Logo Header */}
+        <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+          <img src={isroLogo} alt="VSSC ISRO Logo" style={{ height: "64px", width: "auto", marginBottom: "12px" }} />
+          <div style={{ fontSize: "13px", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.15em", textAlign: "center", fontFamily: "sans-serif" }}>
+            Vikram Sarabhai Space Centre
+          </div>
+          <div style={{ fontSize: "10px", fontWeight: 600, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.15em", textAlign: "center", marginTop: "2px" }}>
+            Indian Space Research Organisation
+          </div>
+        </div>
+
+        <h1 style={{ width: "100%", textAlign: "center", color: "rgba(255,255,255,0.95)", fontSize: "26px", fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase", whiteSpace: "nowrap", marginBottom: "4px" }}>
+          {isResetMode ? "RESET PASSWORD" : "PORTAL LOGIN"}
         </h1>
 
-        <p className="text-[#4b5563] text-[18px] font-semibold mb-7">
-          Infrastructure Visualization System
-        </p>
+        {/* Typewriter sub-header animation */}
+        <div style={{ height: "24px", marginBottom: "28px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "13px", fontWeight: 500, letterSpacing: "0.04em", textAlign: "center", margin: 0 }}>
+            {subText}
+            <span style={{ fontWeight: 700, color: "#38bdf8", marginLeft: "2px", animation: "pulse 1s infinite" }}>|</span>
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="w-full">
+        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
           {error && (
-            <div className="bg-[#fb473d] text-white text-center px-[14px] py-3 rounded-[10px] mb-4 border border-[#fecaca]">
+            <div style={{ background: "rgba(239,68,68,0.18)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.35)", textAlign: "center", padding: "10px 14px", borderRadius: "10px", marginBottom: "16px", fontSize: "14px" }}>
               {error}
             </div>
           )}
 
           {/* Staff Code Input */}
-          <div className="flex items-center mb-[18px] bg-white/80 rounded-xl px-[10px] py-[6px] border border-[#914af6] shadow-sm w-full min-w-[400px]">
-            <div className="w-11 h-11 bg-[#4459c9] rounded-xl flex items-center justify-center mr-3 shrink-0 text-white shadow-[0_8px_18px_rgba(68,89,201,0.35)]">
-              <svg
-                className="w-[22px] h-[22px]"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                  clipRule="evenodd"
-                />
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "18px", background: "rgba(255,255,255,0.07)", borderRadius: "12px", padding: "6px 10px", border: "1px solid rgba(255,255,255,0.12)", width: "100%", boxSizing: "border-box" }}>
+            <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg,#0e88d3,#38bdf8)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "12px", flexShrink: 0, color: "white", boxShadow: "0 4px 12px rgba(14,136,211,0.3)" }}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
               </svg>
             </div>
-
             <input
               type="text"
               placeholder="Staff Code"
               value={staffCode}
               onChange={(e) => setStaffCode(e.target.value)}
               required
-              className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-[#111827] outline-none placeholder:text-[#9ca3af]"
+              style={{ flex: 1, border: "none", background: "transparent", padding: "10px 6px", fontSize: "16px", color: "rgba(255,255,255,0.9)", outline: "none" }}
             />
           </div>
 
           {/* Password/New Password Input */}
-          <div className="flex items-center mb-[18px] bg-white/80 rounded-xl px-[10px] py-[6px] border border-[#914af6] shadow-sm w-full min-w-[400px]">
-            <div className="w-11 h-11 bg-[#4459c9] rounded-xl flex items-center justify-center mr-3 shrink-0 text-white shadow-[0_8px_18px_rgba(68,89,201,0.35)]">
-              <svg
-                className="w-[22px] h-[22px]"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                  clipRule="evenodd"
-                />
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "18px", background: "rgba(255,255,255,0.07)", borderRadius: "12px", padding: "6px 10px", border: "1px solid rgba(255,255,255,0.12)", width: "100%", boxSizing: "border-box" }}>
+            <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg,#0e88d3,#38bdf8)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "12px", flexShrink: 0, color: "white", boxShadow: "0 4px 12px rgba(14,136,211,0.3)" }}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
               </svg>
             </div>
-
             <input
               type="password"
               placeholder={isResetMode ? "New Password" : "Password"}
               value={isResetMode ? newPassword : password}
-              onChange={(e) =>
-                isResetMode ? setNewPassword(e.target.value) : setPassword(e.target.value)
-              }
+              onChange={(e) => isResetMode ? setNewPassword(e.target.value) : setPassword(e.target.value)}
               required
-              className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-[#111827] outline-none placeholder:text-[#9ca3af]"
+              style={{ flex: 1, border: "none", background: "transparent", padding: "10px 6px", fontSize: "16px", color: "rgba(255,255,255,0.9)", outline: "none" }}
             />
           </div>
 
           {/* Confirm Password Input (only in reset mode) */}
           {isResetMode && (
-            <div className="flex items-center mb-[18px] bg-white/80 rounded-xl px-[10px] py-[6px] border border-[#914af6] shadow-sm w-full min-w-[400px]">
-              <div className="w-11 h-11 bg-[#4459c9] rounded-xl flex items-center justify-center mr-3 shrink-0 text-white shadow-[0_8px_18px_rgba(68,89,201,0.35)]">
-                <svg
-                  className="w-[22px] h-[22px]"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "18px", background: "rgba(255,255,255,0.07)", borderRadius: "12px", padding: "6px 10px", border: "1px solid rgba(255,255,255,0.12)", width: "100%", boxSizing: "border-box" }}>
+              <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg,#0e88d3,#38bdf8)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "12px", flexShrink: 0, color: "white", boxShadow: "0 4px 12px rgba(14,136,211,0.3)" }}>
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 1C8.676 1 6 3.676 6 7v3H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V12c0-1.1-.9-2-2-2h-1V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v3H8V7c0-2.276 1.724-4 4-4zm-1.5 12.5l-2-2 1.414-1.414L11.5 13.672l3.086-3.086L16 11.5l-4.5 4.5z" />
                 </svg>
               </div>
-
               <input
                 type="password"
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-[#111827] outline-none placeholder:text-[#9ca3af]"
+                style={{ flex: 1, border: "none", background: "transparent", padding: "10px 6px", fontSize: "16px", color: "rgba(255,255,255,0.9)", outline: "none" }}
               />
             </div>
           )}
 
           {/* Forgot Password / Back to Login */}
-          <div className="flex justify-end mt-2 mb-[18px]">
-            {!isResetMode ? (
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-[#4459c9] text-sm font-semibold bg-transparent border-none cursor-pointer hover:underline"
-              >
-                Forgot Password?
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleBackToLogin}
-                className="text-[#4459c9] text-sm font-semibold bg-transparent border-none cursor-pointer hover:underline"
-              >
-                Back to Login
-              </button>
-            )}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", marginBottom: "18px" }}>
+            <button
+              type="button"
+              onClick={isResetMode ? handleBackToLogin : handleForgotPassword}
+              style={{ color: "#38bdf8", fontSize: "12px", fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", textDecoration: "none" }}
+              onMouseEnter={e => e.target.style.textDecoration = "underline"}
+              onMouseLeave={e => e.target.style.textDecoration = "none"}
+            >
+              {isResetMode ? "Back to Login" : "Forgot Password?"}
+            </button>
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-[18px] text-[19px] font-bold text-white rounded-[14px]
-                       bg-gradient-to-br from-[#1bb34b] to-[#0f8639]
-                       shadow-[0_12px_28px_rgba(16,185,129,0.35)]
-                       transition-transform duration-100 ease-out
-                       hover:-translate-y-[1px]
-                       hover:shadow-[0_16px_32px_rgba(16,185,129,0.45)]
-                       disabled:cursor-not-allowed disabled:opacity-80"
+            style={{ width: "100%", padding: "14px", fontSize: "16px", fontWeight: 700, color: "white", borderRadius: "12px", background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 4px 14px rgba(16,185,129,0.3)", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.8 : 1, transition: "all 0.15s ease-out", letterSpacing: "0.05em" }}
+            onMouseEnter={e => { if (!loading) { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 6px 20px rgba(16,185,129,0.4)"; } }}
+            onMouseLeave={e => { e.target.style.transform = "none"; e.target.style.boxShadow = "0 4px 14px rgba(16,185,129,0.3)"; }}
           >
-            {loading
-              ? isResetMode
-                ? "RESETTING..."
-                : "LOGGING IN..."
-              : isResetMode
-              ? "SUBMIT"
-              : "LOGIN"}
+            {loading ? (isResetMode ? "RESETTING..." : "LOGGING IN...") : (isResetMode ? "SUBMIT" : "LOGIN")}
           </button>
         </form>
       </div>
-
-      <div className="hidden" aria-hidden="true" />
     </div>
   );
 };

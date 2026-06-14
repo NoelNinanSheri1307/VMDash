@@ -32,32 +32,32 @@
   scrollbar-width: none;  /* Firefox */
 }
 
-/* Role Accents */
+/* Role Accents (Premium hand-crafted themes) */
 :root[data-role="admin"] {
-  --color-role-primary: #3b82f6;
-  --color-role-primary-hover: #2563eb;
-  --color-role-primary-light: rgba(59, 130, 246, 0.1);
-  --color-role-primary-border: #93c5fd;
+  --color-role-primary: #6366f1; /* Premium Royal Indigo */
+  --color-role-primary-hover: #4f46e5;
+  --color-role-primary-light: rgba(99, 102, 241, 0.15);
+  --color-role-primary-border: #a5b4fc;
 }
 :root[data-role="manager"] {
-  --color-role-primary: #10b981;
-  --color-role-primary-hover: #059669;
-  --color-role-primary-light: rgba(16, 185, 129, 0.1);
-  --color-role-primary-border: #6ee7b7;
+  --color-role-primary: #0d9488; /* Premium Eucalyptus Teal */
+  --color-role-primary-hover: #0f766e;
+  --color-role-primary-light: rgba(13, 148, 136, 0.15);
+  --color-role-primary-border: #99f6e4;
 }
 :root[data-role="user"] {
-  --color-role-primary: #ef4444;
-  --color-role-primary-hover: #dc2626;
-  --color-role-primary-light: rgba(239, 68, 68, 0.1);
-  --color-role-primary-border: #fca5a5;
+  --color-role-primary: #f43f5e; /* Premium Coral Rose */
+  --color-role-primary-hover: #e11d48;
+  --color-role-primary-light: rgba(244, 63, 94, 0.15);
+  --color-role-primary-border: #fecdd3;
 }
 
-/* Fallback default role */
+/* Fallback default role (Admin Theme) */
 :root {
-  --color-role-primary: #3b82f6;
-  --color-role-primary-hover: #2563eb;
-  --color-role-primary-light: rgba(59, 130, 246, 0.1);
-  --color-role-primary-border: #93c5fd;
+  --color-role-primary: #6366f1;
+  --color-role-primary-hover: #4f46e5;
+  --color-role-primary-light: rgba(99, 102, 241, 0.15);
+  --color-role-primary-border: #a5b4fc;
 }
 
 .bg-role-primary {
@@ -77,6 +77,75 @@
 }
 .border-role-primary-light {
   border-color: var(--color-role-primary-border) !important;
+}
+
+/* Premium Hand-Crafted Button Classes (No Generic AI Shades) */
+.btn-premium-primary {
+  @apply px-4 py-2 text-sm font-semibold rounded-xl text-white shadow-sm transition-all duration-200 block text-center;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.btn-premium-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  transform: translateY(-1px);
+}
+.btn-premium-primary:active {
+  transform: translateY(0);
+}
+
+.btn-premium-role {
+  @apply px-4 py-2 text-sm font-semibold rounded-xl text-white shadow-sm transition-all duration-200 block text-center;
+  background: var(--color-role-primary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.btn-premium-role:hover {
+  background: var(--color-role-primary-hover) !important;
+  box-shadow: 0 4px 12px var(--color-role-primary-light);
+  transform: translateY(-1px);
+}
+.btn-premium-role:active {
+  transform: translateY(0);
+}
+
+.btn-premium-secondary {
+  @apply px-4 py-2 text-sm font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-200 block text-center;
+}
+.btn-premium-secondary:hover {
+  @apply border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-indigo-950/20;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+  transform: translateY(-1px);
+}
+.btn-premium-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-premium-success {
+  @apply px-4 py-2 text-sm font-semibold rounded-xl text-white shadow-sm transition-all duration-200 block text-center;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); /* Eucalyptus Teal instead of bright neon green */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.btn-premium-success:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+  transform: translateY(-1px);
+}
+.btn-premium-success:active {
+  transform: translateY(0);
+}
+
+.btn-premium-danger {
+  @apply px-4 py-2 text-sm font-semibold rounded-xl text-white shadow-sm transition-all duration-200 block text-center;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.btn-premium-danger:hover {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+  transform: translateY(-1px);
+}
+.btn-premium-danger:active {
+  transform: translateY(0);
 }
 
 /* Sliding Drawer Styles */

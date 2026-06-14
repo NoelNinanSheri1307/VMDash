@@ -100,19 +100,24 @@ export default function StorageVolumes() {
     try {
       setLoading(true);
       
-      // Fetch storage pools
+      // Fetch storage pools — primary request
       const storageRes = await proxmoxApi.get("/proxmox/storage/");
-      
-      // Fetch all VMs with storage detail mapping using Report API
-      const reportRes = await proxmoxApi.post("/proxmox/report", {
-        format: "json",
-        columns: ["vm_uuid", "vm_name", "cluster_name", "node_name", "storages"]
-      });
+      setStorages(storageRes.data || []);
+      setError("");
 
-      // Aggregate storage allocation per storage pool key: cluster_name | node_name | storage_name
-      const alloc = {};
-      if (Array.isArray(reportRes.data)) {
-        reportRes.data.forEach((vm) => {
+      // Fetch VM storage allocation via Report API (best-effort — non-blocking)
+      try {
+        const reportRes = await proxmoxApi.post("/proxmox/report", {
+          format: "json",
+          columns: ["vm_uuid", "vm_name", "cluster_name", "node_name", "storages"]
+        });
+
+        const alloc = {};
+        const vmsList = Array.isArray(reportRes.data)
+          ? reportRes.data
+          : (reportRes.data && Array.isArray(reportRes.data.data) ? reportRes.data.data : []);
+
+        vmsList.forEach((vm) => {
           if (vm.storages && Array.isArray(vm.storages)) {
             vm.storages.forEach((st) => {
               const key = `${vm.cluster_name}|${vm.node_name}|${st.storage_name}`;
@@ -121,14 +126,16 @@ export default function StorageVolumes() {
             });
           }
         });
+
+        setAllocationMap(alloc);
+      } catch (reportErr) {
+        console.warn("VM report API unavailable – allocation data will not be shown:", reportErr);
+        // Allocation map stays empty — storage pools still render without utilization bars
       }
 
-      setStorages(storageRes.data);
-      setAllocationMap(alloc);
-      setError("");
     } catch (err) {
       console.error("Failed to load storage volumes information:", err);
-      setError("Unable to communicate with the storage backend or VM reports API.");
+      setError("Unable to communicate with the storage backend. Please ensure the Proxmox service is running.");
     } finally {
       setLoading(false);
     }
@@ -136,6 +143,11 @@ export default function StorageVolumes() {
 
   useEffect(() => {
     fetchStorageData();
+    const params = new URLSearchParams(window.location.search);
+    const poolParam = params.get("pool");
+    if (poolParam) {
+      setSearchTerm(poolParam);
+    }
   }, []);
 
   const handleSort = (field) => {
