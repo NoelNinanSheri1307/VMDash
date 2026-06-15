@@ -1,0 +1,149 @@
+Here are the clean instructions for deploying VMDash on RHEL after `git clone`:
+
+---
+
+## 1. System Packages
+
+```bash
+sudo dnf install -y git wget curl python3 python3-devel python3-pip nginx mysql-server
+sudo dnf module enable nodejs:18 -y && sudo dnf install -y nodejs
+```
+
+## 2. MySQL
+
+```bash
+sudo systemctl start mysqld && sudo systemctl enable mysqld
+sudo mysql -e "
+  CREATE DATABASE IF NOT EXISTS ccds_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS proxmox_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY 'vssc@123';
+  GRANT ALL PRIVILEGES ON ccds_db.* TO 'admin'@'localhost';
+  GRANT ALL PRIVILEGES ON proxmox_db.* TO 'admin'@'localhost';
+  FLUSH PRIVILEGES;
+"
+```
+
+Import the database dumps (replace `/path/to/vmdash` with your clone path):
+
+```bash
+cd /path/to/vmdash/code
+mysql -u admin -p'vssc@123' proxmox_db < dbdump.sql
+mysql -u admin -p'vssc@123' < seed_active.sql
+mysql -u admin -p'vssc@123' < stage_5_migration.sql
+```
+
+## 3. Backend Services
+
+### Web Backend (port 5000)
+```bash
+cd /path/to/vmdash/code/infra-code/web_backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create `.env`:
+```env
+DB_USER=admin
+DB_PASS=vssc@123
+DB_HOST=localhost
+CCDS_DB_NAME=ccds_db
+```
+
+Run:
+```bash
+gunicorn --workers 3 --bind 0.0.0.0:5000 app:app
+```
+
+### Proxmox Backend (port 5001)
+```bash
+cd /path/to/vmdash/code/infra-code/proxmox_backend
+python3 -m venv venv
+source venv/bin/activate
+pip install ./paramiko-4.0.0-py3-none-any.whl
+pip install -r requirements.txt
+```
+
+Create `.env`:
+```env
+DB_USER=admin
+DB_PASS=vssc@123
+DB_HOST=localhost
+PROXMOX_DB_NAME=proxmox_db
+```
+
+Run:
+```bash
+gunicorn --workers 3 --bind 0.0.0.0:5001 --timeout 300 app:app
+```
+
+## 4. Frontend (option A — dev server on port 3000)
+
+```bash
+cd /path/to/vmdash/code/infra-code/frontend
+```
+
+Edit `.env` to use direct API URLs:
+```env
+REACT_APP_HOST_URL=http://<SERVER_IP>:5000
+REACT_APP_PROXMOX_URL=http://<SERVER_IP>:5001
+```
+
+```bash
+npm install --legacy-peer-deps
+npm start
+```
+
+Access at `http://<SERVER_IP>:3000` with `admin` / `vssc@123`.
+
+## 4b. Frontend (option B — production via Nginx on port 80)
+
+```bash
+cd /path/to/vmdash/code/infra-code/frontend
+```
+
+Edit `.env` for Nginx proxy paths:
+```env
+REACT_APP_HOST_URL=/api/web
+REACT_APP_PROXMOX_URL=/api/proxmox
+```
+
+Build:
+```bash
+npm install --legacy-peer-deps
+npm run build
+```
+
+Configure Nginx (`/etc/nginx/nginx.conf`):
+```nginx
+server {
+    listen 80;
+    root /path/to/vmdash/code/infra-code/frontend/build;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/web/ {
+        rewrite ^/api/web/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:5000;
+    }
+
+    location /api/proxmox/ {
+        rewrite ^/api/proxmox/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:5001;
+    }
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl start nginx
+sudo setsebool -P httpd_can_network_connect 1
+sudo firewall-cmd --permanent --add-service=http && sudo firewall-cmd --reload
+```
+
+Access at `http://<SERVER_IP>` with `admin` / `vssc@123`.
+
+---
+
+**Test accounts:** `admin`/`vssc@123`, `VS10106`/`vssc@123`, `manager`/`vssc@123` (if seeded).
