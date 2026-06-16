@@ -179,7 +179,7 @@ const AppLayout = ({ children }) => {
       id: "administration",
       title: "Administration",
       icon: <ShieldCheck size={18} />,
-      roles: ["admin", "manager"],
+      roles: ["admin", "manager", "user"],
       items: role === "admin" ? [
         { to: "/administration/requests", label: "VM Request Inbox" },
         { to: "/add", label: "Add VM Provision" },
@@ -188,10 +188,15 @@ const AppLayout = ({ children }) => {
         { to: "/add-user", label: "Add User Credentials" },
         { to: "/administration/sync", label: "Sync Center" },
         { to: "/administration/sync-logs", label: "Sync Logs" }
-      ] : [
+      ] : role === "manager" ? [
         { to: "/administration/requests", label: "VM Request Inbox" },
         { to: "/administration/ownership", label: "VM Ownership" },
-        { to: "/administration/users-list", label: "User Directory" }
+        { to: "/administration/users-list", label: "User Directory" },
+        { to: "/administration/sync", label: "Sync Center" },
+        { to: "/administration/sync-logs", label: "Sync Logs" }
+      ] : [
+        { to: "/administration/sync", label: "Sync Center" },
+        { to: "/administration/sync-logs", label: "Sync Logs" }
       ]
     },
     {
@@ -247,8 +252,8 @@ const AppLayout = ({ children }) => {
           </button>
         </div>
 
-        {/* Sync Action Button (Admin only) */}
-        {role === "admin" && (
+        {/* Sync Action Button (All roles) */}
+        {(role === "admin" || role === "manager" || role === "user") && (
           <div className="p-3 shrink-0">
             <button
               onClick={() => navigate("/administration/sync")}

@@ -23,6 +23,8 @@ export default function SyncCenter() {
     setSyncStatus("syncing");
     setErrorMessage("");
 
+    const startTime = Date.now();
+
     // Reset all steps to idle
     const updatedSteps = {
       cluster: { ...steps.cluster, status: "idle", error: "" },
@@ -61,6 +63,9 @@ export default function SyncCenter() {
       }
     };
 
+    let finalStatus = "success";
+    let finalSummary = "Successfully synced clusters, nodes, storage, and virtual machines";
+
     try {
       // Step 1: Cluster
       await runStep("cluster", "/proxmox/cluster/sync");
@@ -73,9 +78,21 @@ export default function SyncCenter() {
 
       setSyncStatus("success");
     } catch (err) {
+      finalStatus = "failed";
+      finalSummary = `Sync failed: ${err.message || "An unexpected error occurred during database sync operations."}`;
       setSyncStatus("failed");
       setErrorMessage(err.message || "An unexpected error occurred during database sync operations.");
     } finally {
+      const durationSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+      try {
+        await proxmoxApi.post("/proxmox/sync-logs", {
+          duration: parseFloat(durationSeconds),
+          status: finalStatus,
+          summary: finalSummary
+        });
+      } catch (logErr) {
+        console.error("Failed to write synchronization log to server ledger:", logErr);
+      }
       setSyncing(false);
     }
   };

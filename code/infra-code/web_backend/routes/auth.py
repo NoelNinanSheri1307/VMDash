@@ -542,3 +542,84 @@ def admin_toggle_status():
         return jsonify({"error": str(e)}), 500
     finally:
         session.close()
+
+
+@auth_bp.route('/profile', methods=['GET'])
+def get_profile():
+    if 'staff_code' in flask_session:
+        staff_code = flask_session.get('staff_code')
+    else:
+        # Fallback: check in-memory store with expiration
+        staff_code = None
+        if hasattr(current_app, 'sessions_store'):
+            for sc, user_data in list(current_app.sessions_store.items()):
+                if user_data.get('expires_at') and datetime.now() < user_data['expires_at']:
+                    staff_code = sc
+                    break
+        if not staff_code:
+            return jsonify({"error": "Not authenticated"}), 401
+        
+    session = SessionLocal()
+    try:
+        from models.user_table import User
+        from models.emp_table import EmpDetails
+        
+        # Find in UserRoles
+        u = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Try to find in User table
+        user_data = session.query(User).filter_by(staff_code=staff_code).first()
+        # Also check EmpDetails
+        emp_data = session.query(EmpDetails).filter_by(staff_code=staff_code).first()
+        
+        # Get fields, prioritize User table then EmpDetails
+        name = (user_data.name if user_data else None) or (emp_data.name if emp_data else "Unknown")
+        entity = (user_data.entity if user_data else None) or (emp_data.entity if emp_data else "—")
+        groupname = (user_data.groupname if user_data else None) or (emp_data.groupname if emp_data else "—")
+        division = (user_data.division if user_data else None) or (emp_data.division if emp_data else "—")
+        center = (user_data.center if user_data else "—")
+        section = (user_data.section if user_data else "—")
+        
+        # Let's also see what VMs this user owns!
+        # user_data.vms has the relationship! Let's get the list of VMs owned by this user
+        vms = []
+        if user_data and user_data.vms:
+            for vm in user_data.vms:
+                vms.append({
+                    "vm_name": vm.vm_name,
+                    "host_name": vm.host_name,
+                    "environment": vm.environment,
+                    "cluster": vm.cluster,
+                    "ram": vm.ram,
+                    "cores": vm.cores,
+                    "ip": vm.ip,
+                    "mac": vm.mac,
+                    "os": vm.os,
+                    "disk_size": vm.disk_size,
+                    "source": vm.source,
+                    "narc": vm.narc,
+                    "time_created": vm.time_created,
+                    "gpu": vm.gpu,
+                    "request_source": vm.request_source
+                })
+        
+        return jsonify({
+            "staff_code": u.staff_code1,
+            "role": u.role,
+            "status": u.status,
+            "last_login_at": u.last_login_at.strftime("%Y-%m-%d %H:%M:%S") if u.last_login_at else None,
+            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else None,
+            "name": name,
+            "center": center,
+            "entity": entity,
+            "groupname": groupname,
+            "division": division,
+            "section": section,
+            "vms": vms
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()

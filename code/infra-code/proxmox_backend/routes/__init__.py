@@ -11,6 +11,7 @@ from .notifications import notifications_bp
 from .alerts import alerts_bp
 from .ownership import ownership_bp
 from .governance import governance_bp
+from .sync_logs import sync_logs_bp
 
 
 def register_routes(app):
@@ -27,3 +28,4 @@ def register_routes(app):
     app.register_blueprint(alerts_bp)
     app.register_blueprint(ownership_bp)
     app.register_blueprint(governance_bp)
+    app.register_blueprint(sync_logs_bp)
