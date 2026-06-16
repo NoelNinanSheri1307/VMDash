@@ -57,15 +57,15 @@ export default function SyncLogsCenter() {
             <div className="space-y-3 pt-2">
               <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
                 <span className="text-slate-500 dark:text-slate-400">Total Synchronizations</span>
-                <span className="font-bold text-slate-850 dark:text-slate-200 font-mono">142</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">142</span>
               </div>
               <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
                 <span className="text-slate-500 dark:text-slate-400">Average Duration</span>
-                <span className="font-bold text-slate-850 dark:text-slate-200 font-mono">14.1s</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">14.1s</span>
               </div>
               <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
                 <span className="text-slate-500 dark:text-slate-400">Scheduled Sync Interval</span>
-                <span className="font-bold text-slate-850 dark:text-slate-200 font-mono">Every 4 hrs</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">Every 4 hrs</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Success Rate</span>
@@ -96,7 +96,7 @@ export default function SyncLogsCenter() {
             {dummyLogs.map((log) => (
               <div 
                 key={log.id} 
-                className="border border-slate-100 dark:border-slate-800/80 rounded-xl p-4 transition duration-150 hover:bg-slate-50/50 dark:hover:bg-slate-850/30 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="border border-slate-100 dark:border-slate-800/80 rounded-xl p-4 transition duration-150 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-3">

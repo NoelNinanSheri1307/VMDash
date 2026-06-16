@@ -897,7 +897,7 @@ const VmDashboard = () => {
                             </div>
                             <div>
                                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{kpi.label}</div>
-                                <div className="text-2xl font-black text-slate-850 dark:text-slate-50 mt-0.5">{kpi.value}</div>
+                                <div className="text-2xl font-black text-slate-800 dark:text-slate-50 mt-0.5">{kpi.value}</div>
                             </div>
                         </div>
                     );
@@ -942,7 +942,7 @@ const VmDashboard = () => {
             <div className="px-8 mb-5">
                 <button 
                     onClick={() => setShowAnalytics(!showAnalytics)} 
-                    className="w-full flex items-center justify-between px-5 py-3 border border-slate-200 dark:border-slate-850 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850/50 shadow-sm text-slate-700 dark:text-slate-300 font-semibold text-xs transition"
+                    className="w-full flex items-center justify-between px-5 py-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 shadow-sm text-slate-700 dark:text-slate-300 font-semibold text-xs transition"
                 >
                     <div className="flex items-center gap-2">
                         <BarChart2 size={16} />
@@ -954,7 +954,7 @@ const VmDashboard = () => {
                 {showAnalytics && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-4 bg-slate-50 dark:bg-slate-900/10 p-4 border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-inner">
                         {/* Status Donut */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">VM Status Ratio</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
                                 <Plot 
@@ -983,7 +983,7 @@ const VmDashboard = () => {
                         </div>
 
                         {/* OS Distribution */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">OS Distribution</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
                                 <Plot 
@@ -1010,7 +1010,7 @@ const VmDashboard = () => {
                         </div>
 
                         {/* Cluster Workloads */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Cluster Workloads</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
                                 <Plot 
@@ -1036,7 +1036,7 @@ const VmDashboard = () => {
                         </div>
 
                         {/* Ownership Ratio */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Ownership Ratio</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
                                 <Plot 
@@ -1063,7 +1063,7 @@ const VmDashboard = () => {
                         </div>
 
                         {/* Nodes allocation (Top Nodes concentration) */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Concentration per Node</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
                                 <Plot 
@@ -1090,7 +1090,7 @@ const VmDashboard = () => {
                         </div>
 
                         {/* Sunburst workloads Hierarchy */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-850/60 shadow-sm flex flex-col justify-between h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800/60 shadow-sm flex flex-col justify-between h-[220px]">
                             <h3 className="font-bold text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Sunburst Hierarchy</h3>
                             <div className="flex-1 min-h-[160px] flex items-center justify-center">
                                 <Plot 
@@ -1120,7 +1120,7 @@ const VmDashboard = () => {
                 {/* Advanced Search & Dropdowns */}
                 <div className="flex flex-col lg:flex-row gap-3">
                     {/* Real-time Global Search bar */}
-                    <div className="flex-1 flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-850 focus-within:border-role-primary focus-within:shadow-md px-3 py-1.5 transition">
+                    <div className="flex-1 flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 focus-within:border-role-primary focus-within:shadow-md px-3 py-1.5 transition">
                         <Search className="text-slate-400 mr-2.5" size={18} />
                         <input 
                             type="text" 
@@ -1139,7 +1139,7 @@ const VmDashboard = () => {
                         <select 
                             value={filterCluster} 
                             onChange={(e) => { setFilterCluster(e.target.value); setCurrentPage(1); }} 
-                            className="px-3 py-2 border border-slate-200 dark:border-slate-850 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none transition"
+                            className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none transition"
                         >
                             <option value="">All Clusters</option>
                             {filterOptions.clusters.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1147,7 +1147,7 @@ const VmDashboard = () => {
                         <select 
                             value={filterNode} 
                             onChange={(e) => { setFilterNode(e.target.value); setCurrentPage(1); }} 
-                            className="px-3 py-2 border border-slate-200 dark:border-slate-850 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none transition"
+                            className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none transition"
                         >
                             <option value="">All Nodes</option>
                             {filterOptions.nodes.map(n => <option key={n} value={n}>{n}</option>)}
@@ -1155,7 +1155,7 @@ const VmDashboard = () => {
                         <select 
                             value={filterOs} 
                             onChange={(e) => { setFilterOs(e.target.value); setCurrentPage(1); }} 
-                            className="px-3 py-2 border border-slate-200 dark:border-slate-850 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none transition"
+                            className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none transition"
                         >
                             <option value="">All OS Types</option>
                             {filterOptions.oss.map(o => <option key={o} value={o}>{o}</option>)}
@@ -1168,7 +1168,7 @@ const VmDashboard = () => {
                         className={`px-4 py-2 border rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                             showAdvFilters 
                             ? "bg-role-primary border-role-primary text-white" 
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                         }`}
                     >
                         <SlidersHorizontal size={14} />
@@ -1178,7 +1178,7 @@ const VmDashboard = () => {
 
                 {/* Advanced Dropdown selectors panel */}
                 {showAdvFilters && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5 bg-white dark:bg-slate-900/60 p-4 border border-slate-200 dark:border-slate-850 rounded-xl animate-slide-in shadow-inner">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5 bg-white dark:bg-slate-900/60 p-4 border border-slate-200 dark:border-slate-800 rounded-xl animate-slide-in shadow-inner">
                         <div>
                             <label className="text-[10px] text-slate-400 font-bold block mb-1">STATUS</label>
                             <select value={advStatus} onChange={(e) => setAdvStatus(e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 text-[11px]">
@@ -1239,10 +1239,10 @@ const VmDashboard = () => {
                 )}
 
                 {/* Quick Filters Ribbon row */}
-                <div className="flex flex-wrap items-center justify-between gap-4 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 p-3 rounded-xl shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-sm">
                     {/* Quick Filters */}
                     <div className="flex flex-wrap gap-2.5 text-xs">
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 px-2 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg">
                             <span className="font-semibold text-slate-400 uppercase text-[9px] mr-1">Status:</span>
                             {["all", "running", "stopped"].map(st => (
                                 <button
@@ -1251,7 +1251,7 @@ const VmDashboard = () => {
                                     className={`px-2.5 py-1 rounded-md font-bold transition capitalize ${
                                         quickStatus === st 
                                         ? "bg-role-primary text-white shadow-sm" 
-                                        : "hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-350"
+                                        : "hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350"
                                     }`}
                                 >
                                     {st}
@@ -1259,7 +1259,7 @@ const VmDashboard = () => {
                             ))}
                         </div>
 
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 px-2 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg">
                             <span className="font-semibold text-slate-400 uppercase text-[9px] mr-1">Owner:</span>
                             {[
                                 { id: "all", label: "All" },
@@ -1272,7 +1272,7 @@ const VmDashboard = () => {
                                     className={`px-2.5 py-1 rounded-md font-bold transition ${
                                         quickOwnership === o.id 
                                         ? "bg-role-primary text-white shadow-sm" 
-                                        : "hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-350"
+                                        : "hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350"
                                     }`}
                                 >
                                     {o.label}
@@ -1280,7 +1280,7 @@ const VmDashboard = () => {
                             ))}
                         </div>
 
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 px-2 py-1 rounded-lg">
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg">
                             <span className="font-semibold text-slate-400 uppercase text-[9px] mr-1">Compute Limits:</span>
                             {[
                                 { id: "all", label: "All Specs" },
@@ -1295,7 +1295,7 @@ const VmDashboard = () => {
                                     className={`px-2.5 py-1 rounded-md font-bold transition ${
                                         quickResource === res.id 
                                         ? "bg-role-primary text-white shadow-sm" 
-                                        : "hover:bg-slate-200 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-350"
+                                        : "hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350"
                                     }`}
                                 >
                                     {res.label}
@@ -1312,7 +1312,7 @@ const VmDashboard = () => {
                         <select 
                             value={smartSort} 
                             onChange={(e) => { setSmartSort(e.target.value); setCurrentPage(1); }} 
-                            className="px-2.5 py-1.5 border border-slate-200 dark:border-slate-850 rounded-lg bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none"
+                            className="px-2.5 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none"
                         >
                             <option value="">Table Header Default</option>
                             <option value="cpu">Highest CPU Consumers</option>

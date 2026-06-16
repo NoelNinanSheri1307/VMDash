@@ -192,7 +192,7 @@ export default function EntityUsage() {
                 {chartData.entities.map((ent) => {
                   const s = entityStats[ent];
                   return (
-                    <tr key={ent} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
+                    <tr key={ent} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <td className="px-5 py-3 font-semibold text-slate-900 dark:text-slate-100">{ent}</td>
                       <td className="px-5 py-3 text-center font-bold">{s.count}</td>
                       <td className="px-5 py-3 text-center font-mono">{s.cores} Cores</td>

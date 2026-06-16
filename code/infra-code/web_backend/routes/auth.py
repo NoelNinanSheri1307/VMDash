@@ -47,11 +47,18 @@ def login():
         
         if not user:
             return jsonify({"error": "User does not exist"}), 401
+            
+        if user.status == 'inactive':
+            return jsonify({"error": "Account is deactivated. Please contact an administrator."}), 403
         
         # Check password: compare entered password with hashed password in database
         if not check_password_hash(user.password_hash, password):
             return jsonify({"error": "Invalid password"}), 401
         
+        # Update last login timestamp
+        user.last_login_at = datetime.now()
+        session.commit()
+
         # Set Flask session (server-side)
         flask_session['staff_code'] = user.staff_code1
         flask_session['role'] = user.role
@@ -74,6 +81,7 @@ def login():
         }), 200
         
     except Exception as e:
+        session.rollback()
         return jsonify({"error": str(e)}), 500
     
     finally:
@@ -82,48 +90,71 @@ def login():
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    """
-    Process:
-    1. Get staff_code, new_password, confirm_password from request
-    2. Check if user exists
-    3. Check if user role is 'admin' - if yes, DENY password change
-    4. Validate new_password == confirm_password
-    5. Validate password constraints (8 chars, 4 letters, 1 number, 1 special char)
-    6. Hash new password using generate_password_hash()
-    7. Store hashed password in database
-    """
     session = SessionLocal()
-    print("At the beginning")
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         staff_code = data.get('staff_code')
         new_password = data.get('new_password')
         confirm_password = data.get('confirm_password')
         
-        # if not staff_code or not new_password or not confirm_password:
-        #     return jsonify({"error": "All fields are required"}), 400
+        if not staff_code or not new_password or not confirm_password:
+            return jsonify({"error": "All fields are required"}), 400
+            
+        if new_password != confirm_password:
+            return jsonify({"error": "Passwords do not match"}), 400
+
+        try:
+            validate_password(new_password)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
         
         # Find user in database
         user = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
-        
         if not user:
             return jsonify({"error": "User does not exist"}), 401
-    
-        # if user.role == 'admin':
-        #     return jsonify({"error": "Admin users cannot change their password"}), 403
- 
-        # try:
-        #     validate_password(new_password)
-        # except ValueError as e:
-        #     return jsonify({"error": str(e)}), 400
-        print("Before")
+            
+        current_user_role = flask_session.get('role')
+        if user.role in ['admin', 'manager']:
+            if current_user_role != 'admin':
+                return jsonify({"error": "Admin and Manager passwords can only be reset by an Administrator."}), 403
+
+        if current_user_role != 'admin':
+            # Perform identity verification via Employee details in DB
+            from models.user_table import User
+            emp = session.query(User).filter_by(staff_code=staff_code).first()
+            if not emp:
+                return jsonify({"error": "Identity verification failed. Employee record not found."}), 400
+            
+            verify_entity = data.get('entity')
+            verify_division = data.get('division')
+            if not verify_entity or not verify_division:
+                return jsonify({"error": "Identity verification required. Please provide your Entity and Division."}), 400
+                
+            if emp.entity.lower() != verify_entity.lower() or emp.division.lower() != verify_division.lower():
+                return jsonify({"error": "Verification failed. Entity or Division details are incorrect."}), 400
+
         hashed_password = generate_password_hash(new_password)
-        print("After")
-        
-        # Update password hash in database
         user.password_hash = hashed_password
         session.commit()
         
+        # Write notification to audit trail in proxmox_db
+        try:
+            from sqlalchemy import text
+            session.execute(
+                text("INSERT INTO proxmox_db.notifications (recipient_staff_code, notification_type, title, message, severity) "
+                     "VALUES (:recipient, :ntype, :title, :msg, :sev)"),
+                {
+                    "recipient": staff_code,
+                    "ntype": "password_reset",
+                    "title": "Password Reset Notification",
+                    "msg": "Your password has been successfully reset.",
+                    "sev": "warning"
+                }
+            )
+            session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Failed to create notification: {e}")
+            
         return jsonify({
             "message": "Password changed successfully",
             "staff_code": user.staff_code1
@@ -134,7 +165,7 @@ def reset_password():
         return jsonify({"error": str(e)}), 500
     
     finally:
-        session.close() #temporary "locks" on tables are released
+        session.close()
 
 
 @auth_bp.route('/check', methods=['GET'])
@@ -266,5 +297,248 @@ def add_user():
         session.rollback()
         return jsonify({"error": str(e)}), 500
 
+    finally:
+        session.close()
+
+
+@auth_bp.route('/users', methods=['GET'])
+def get_users():
+    current_role = flask_session.get('role')
+    if current_role not in ['admin', 'manager']:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    session = SessionLocal()
+    try:
+        from models.emp_table import EmpDetails
+        users = session.query(UserRoles).all()
+        emp_map = {e.staff_code: e for e in session.query(EmpDetails).all()}
+        
+        result = []
+        for u in users:
+            emp = emp_map.get(u.staff_code1)
+            result.append({
+                "staff_code": u.staff_code1,
+                "role": u.role,
+                "status": u.status,
+                "last_login_at": u.last_login_at.strftime("%Y-%m-%d %H:%M:%S") if u.last_login_at else None,
+                "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else None,
+                "name": emp.name if emp else "Unknown",
+                "division": emp.division if emp else "—",
+                "groupname": emp.groupname if emp else "—",
+                "entity": emp.entity if emp else "—"
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
+
+
+@auth_bp.route('/users/<staff_code>', methods=['GET'])
+def get_user_detail(staff_code):
+    current_role = flask_session.get('role')
+    if current_role not in ['admin', 'manager']:
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    session = SessionLocal()
+    try:
+        from models.emp_table import EmpDetails
+        u = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+        emp = session.query(EmpDetails).filter_by(staff_code=staff_code).first()
+        return jsonify({
+            "staff_code": u.staff_code1,
+            "role": u.role,
+            "status": u.status,
+            "last_login_at": u.last_login_at.strftime("%Y-%m-%d %H:%M:%S") if u.last_login_at else None,
+            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else None,
+            "name": emp.name if emp else "Unknown",
+            "division": emp.division if emp else "—",
+            "groupname": emp.groupname if emp else "—",
+            "entity": emp.entity if emp else "—"
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
+
+
+@auth_bp.route('/users/<staff_code>', methods=['PUT'])
+def update_user(staff_code):
+    current_role = flask_session.get('role')
+    if current_role != 'admin':
+        return jsonify({"error": "Unauthorized. Admin access required."}), 403
+        
+    session = SessionLocal()
+    try:
+        data = request.get_json() or {}
+        u = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+            
+        new_role = data.get('role')
+        if new_role and new_role in ['admin', 'manager', 'user']:
+            u.role = new_role
+            
+        new_status = data.get('status')
+        if new_status and new_status in ['active', 'inactive']:
+            u.status = new_status
+            
+        session.commit()
+        return jsonify({"message": "User updated successfully"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
+
+
+@auth_bp.route('/users/reset-password', methods=['POST'])
+def admin_reset_password():
+    current_role = flask_session.get('role')
+    if current_role != 'admin':
+        return jsonify({"error": "Unauthorized. Admin access required."}), 403
+        
+    session = SessionLocal()
+    try:
+        data = request.get_json() or {}
+        staff_code = data.get('staff_code')
+        new_password = data.get('new_password')
+        
+        if not staff_code or not new_password:
+            return jsonify({"error": "Staff code and new password are required"}), 400
+            
+        try:
+            validate_password(new_password)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+            
+        u = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+            
+        u.password_hash = generate_password_hash(new_password)
+        session.commit()
+        
+        try:
+            from sqlalchemy import text
+            session.execute(
+                text("INSERT INTO proxmox_db.notifications (recipient_staff_code, notification_type, title, message, severity) "
+                     "VALUES (:recipient, :ntype, :title, :msg, :sev)"),
+                {
+                    "recipient": staff_code,
+                    "ntype": "password_reset",
+                    "title": "Password Reset",
+                    "msg": "Your password has been reset by an administrator.",
+                    "sev": "warning"
+                }
+            )
+            session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Failed to create notification: {e}")
+            
+        return jsonify({"message": "Password reset successful"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
+
+
+@auth_bp.route('/users/change-role', methods=['POST'])
+def admin_change_role():
+    current_role = flask_session.get('role')
+    if current_role != 'admin':
+        return jsonify({"error": "Unauthorized. Admin access required."}), 403
+        
+    session = SessionLocal()
+    try:
+        data = request.get_json() or {}
+        staff_code = data.get('staff_code')
+        new_role = data.get('role')
+        
+        if not staff_code or not new_role or new_role not in ['admin', 'manager', 'user']:
+            return jsonify({"error": "Staff code and valid role (admin/manager/user) are required"}), 400
+            
+        u = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+            
+        u.role = new_role
+        session.commit()
+        
+        try:
+            from sqlalchemy import text
+            session.execute(
+                text("INSERT INTO proxmox_db.notifications (recipient_staff_code, notification_type, title, message, severity) "
+                     "VALUES (:recipient, :ntype, :title, :msg, :sev)"),
+                {
+                    "recipient": staff_code,
+                    "ntype": "role_changed",
+                    "title": "Role Updated",
+                    "msg": f"Your role has been updated to '{new_role}' by an administrator.",
+                    "sev": "info"
+                }
+            )
+            session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Failed to create notification: {e}")
+            
+        return jsonify({"message": "Role changed successfully"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
+
+
+@auth_bp.route('/users/toggle-status', methods=['POST'])
+def admin_toggle_status():
+    current_role = flask_session.get('role')
+    if current_role != 'admin':
+        return jsonify({"error": "Unauthorized. Admin access required."}), 403
+        
+    session = SessionLocal()
+    try:
+        data = request.get_json() or {}
+        staff_code = data.get('staff_code')
+        
+        if not staff_code:
+            return jsonify({"error": "Staff code is required"}), 400
+            
+        u = session.query(UserRoles).filter_by(staff_code1=staff_code).first()
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+            
+        current_user_staff = flask_session.get('staff_code')
+        if u.staff_code1 == current_user_staff:
+            return jsonify({"error": "You cannot activate or deactivate your own account"}), 400
+            
+        new_status = 'inactive' if u.status == 'active' else 'active'
+        u.status = new_status
+        session.commit()
+        
+        try:
+            from sqlalchemy import text
+            session.execute(
+                text("INSERT INTO proxmox_db.notifications (recipient_staff_code, notification_type, title, message, severity) "
+                     "VALUES (:recipient, :ntype, :title, :msg, :sev)"),
+                {
+                    "recipient": staff_code,
+                    "ntype": "account_status",
+                    "title": "Account Status Updated",
+                    "msg": f"Your account has been {'activated' if new_status == 'active' else 'deactivated'} by an administrator.",
+                    "sev": "warning"
+                }
+            )
+            session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Failed to create notification: {e}")
+            
+        return jsonify({"message": f"Account status updated to {new_status}"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
     finally:
         session.close()

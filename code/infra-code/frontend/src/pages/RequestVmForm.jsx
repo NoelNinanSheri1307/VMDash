@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import PageContainer from "../layouts/PageContainer";
 import Card from "../components/ui/Card";
 import { Monitor, Cpu, HardDrive, Shield, FileText, ArrowRight, Save } from "lucide-react";
+import proxmoxApi from "../api/proxmoxapi";
 
 export default function RequestVmForm() {
   const [formData, setFormData] = useState({
@@ -18,10 +19,31 @@ export default function RequestVmForm() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError("");
+    try {
+      await proxmoxApi.post("/proxmox/requests", {
+        vm_name: formData.vmName,
+        hostname: formData.hostname,
+        environment: formData.environment,
+        cores: formData.cores,
+        ram: formData.ram,
+        disk: formData.disk,
+        os: formData.os,
+        justification: formData.justification || `Request via ${formData.source} ${formData.narc ? '(' + formData.narc + ')' : ''}`,
+        status: "pending"
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to submit request. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = () => {
@@ -38,7 +60,9 @@ export default function RequestVmForm() {
       justification: ""
     });
     setSubmitted(false);
+    setError("");
   };
+
 
   if (submitted) {
     return (
@@ -110,7 +134,7 @@ export default function RequestVmForm() {
                 <select 
                   value={formData.environment}
                   onChange={(e) => setFormData({...formData, environment: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-850 dark:text-slate-200 focus:border-blue-500 transition"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 transition"
                 >
                   <option value="Proxmox">Proxmox VE</option>
                   <option value="RHV">RHV Cluster</option>
@@ -123,7 +147,7 @@ export default function RequestVmForm() {
                 <select 
                   value={formData.os}
                   onChange={(e) => setFormData({...formData, os: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-850 dark:text-slate-200 focus:border-blue-500 transition"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 transition"
                 >
                   <option value="Linux">Linux (Ubuntu/CentOS)</option>
                   <option value="Windows">Windows Server</option>
@@ -135,7 +159,7 @@ export default function RequestVmForm() {
                 <select 
                   value={formData.source}
                   onChange={(e) => setFormData({...formData, source: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-855 dark:text-slate-200 focus:border-blue-500 transition"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 transition"
                 >
                   <option value="NARC">NARC Request</option>
                   <option value="GD">GD Request</option>
@@ -179,7 +203,7 @@ export default function RequestVmForm() {
                 <select 
                   value={formData.cores}
                   onChange={(e) => setFormData({...formData, cores: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-850 dark:text-slate-200 focus:border-blue-500 transition"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 transition"
                 >
                   <option value="2">2 Cores</option>
                   <option value="4">4 Cores</option>
@@ -193,7 +217,7 @@ export default function RequestVmForm() {
                 <select 
                   value={formData.ram}
                   onChange={(e) => setFormData({...formData, ram: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-850 dark:text-slate-200 focus:border-blue-500 transition"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 transition"
                 >
                   <option value="4">4 GiB</option>
                   <option value="8">8 GiB</option>
@@ -208,7 +232,7 @@ export default function RequestVmForm() {
                 <select 
                   value={formData.disk}
                   onChange={(e) => setFormData({...formData, disk: e.target.value})}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-850 dark:text-slate-200 focus:border-blue-500 transition"
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 transition"
                 >
                   <option value="50">50 GiB</option>
                   <option value="100">100 GiB</option>
@@ -218,11 +242,18 @@ export default function RequestVmForm() {
               </div>
             </div>
 
+            {error && (
+              <div className="p-3 text-xs bg-rose-500/10 text-rose-500 rounded-lg border border-rose-500/20">
+                {error}
+              </div>
+            )}
+
             <button 
               type="submit"
-              className="mt-6 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm tracking-wide shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+              disabled={loading}
+              className="mt-6 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-xl font-bold text-sm tracking-wide shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
             >
-              Submit Request Profile <ArrowRight size={16} />
+              {loading ? "Submitting..." : "Submit Request Profile"} <ArrowRight size={16} />
             </button>
           </form>
         </Card>

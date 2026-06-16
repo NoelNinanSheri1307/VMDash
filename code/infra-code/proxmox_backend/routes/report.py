@@ -63,6 +63,15 @@ def get_user_context():
         role = request.args.get("role")
     return staff_code, role
 
+def safe_float(val):
+    if val is None:
+        return 0.0
+    try:
+        # Strip out non-numeric characters like 'G', 'GB', 'M', etc.
+        cleaned = "".join([c for c in str(val) if c.isdigit() or c == "."])
+        return float(cleaned) if cleaned else 0.0
+    except (ValueError, TypeError):
+        return 0.0
 
 report_bp = Blueprint("report", __name__, url_prefix="/proxmox")
 
@@ -584,8 +593,8 @@ def download_vm_report():
     total_storage_pools = len(unique_storages)
 
     total_cpus = sum(int(r.get("cpus") or 0) for r in rows)
-    total_ram = sum(float(r.get("max_memory") or 0) for r in rows)
-    total_disk = sum(float(r.get("max_disk") or 0) for r in rows)
+    total_ram = sum(safe_float(r.get("max_memory")) for r in rows)
+    total_disk = sum(safe_float(r.get("max_disk")) for r in rows)
     total_gpu = sum(int(r.get("gpu") or 0) for r in rows)
 
     assigned_vms = sum(1 for r in rows if r.get("users_assigned"))
@@ -601,13 +610,13 @@ def download_vm_report():
             key = (c, n)
             node_alloc.setdefault(key, {"cpus": 0, "mem": 0})
             node_alloc[key]["cpus"] += int(r.get("cpus") or 0)
-            node_alloc[key]["mem"] += float(r.get("max_memory") or 0)
+            node_alloc[key]["mem"] += safe_float(r.get("max_memory"))
             
         for s in (r.get("storages") or []):
             sname = s.get("storage_name")
             if c and n and sname:
                 skey = (c, n, sname)
-                storage_alloc[skey] = storage_alloc.get(skey, 0.0) + float(s.get("size") or 0.0)
+                storage_alloc[skey] = storage_alloc.get(skey, 0.0) + safe_float(s.get("size"))
 
     capacity_risks = []
     for key, alloc in node_alloc.items():
@@ -662,12 +671,12 @@ def download_vm_report():
             highest_cpu_val = cpus
             highest_cpu_vm = vm_name
             
-        ram = float(r.get("max_memory") or 0)
+        ram = safe_float(r.get("max_memory"))
         if ram > highest_ram_val:
             highest_ram_val = ram
             highest_ram_vm = vm_name
             
-        disk_sum = sum(float(s.get("size") or 0) for s in (r.get("storages") or []))
+        disk_sum = sum(safe_float(s.get("size")) for s in (r.get("storages") or []))
         if disk_sum > largest_disk_val:
             largest_disk_val = disk_sum
             largest_disk_vm = vm_name

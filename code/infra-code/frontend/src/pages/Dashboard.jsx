@@ -146,6 +146,7 @@ export default function Dashboard() {
   const [selectedColumns, setSelectedColumns] = useState(["vm_name", "os", "status", "cluster_name", "node_name", "cpus", "max_memory", "max_disk"]);
   const [selectedFormat, setSelectedFormat] = useState("csv");
   const [exporting, setExporting] = useState(false);
+  const [modalError, setModalError] = useState("");
 
   // Active Cross Filters (Multi-select)
   const [activeFilters, setActiveFilters] = useState({
@@ -598,7 +599,7 @@ export default function Dashboard() {
           <>
             {/* KPI Cards Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <Card className="flex items-center gap-4 border-l-4 border-l-red-500">
+              <Card className="flex items-center gap-4 border-l-4 border-l-role-primary dark:border-l-role-primary">
                 <div className="p-3 bg-role-primary-light text-role-primary rounded-xl">
                   <Monitor size={22} />
                 </div>
@@ -612,7 +613,7 @@ export default function Dashboard() {
                 </div>
               </Card>
 
-              <Card className="flex items-center gap-4 border-l-4 border-l-red-500">
+              <Card className="flex items-center gap-4 border-l-4 border-l-role-primary dark:border-l-role-primary">
                 <div className="p-3 bg-role-primary-light text-role-primary rounded-xl">
                   <Cpu size={22} />
                 </div>
@@ -626,7 +627,7 @@ export default function Dashboard() {
                 </div>
               </Card>
 
-              <Card className="flex items-center gap-4 border-l-4 border-l-red-500">
+              <Card className="flex items-center gap-4 border-l-4 border-l-role-primary dark:border-l-role-primary">
                 <div className="p-3 bg-role-primary-light text-role-primary rounded-xl">
                   <HardDrive size={22} />
                 </div>
@@ -640,7 +641,7 @@ export default function Dashboard() {
                 </div>
               </Card>
 
-              <Card className="flex items-center gap-4 border-l-4 border-l-red-500">
+              <Card className="flex items-center gap-4 border-l-4 border-l-role-primary dark:border-l-role-primary">
                 <div className="p-3 bg-role-primary-light text-role-primary rounded-xl">
                   <Database size={22} />
                 </div>
@@ -799,17 +800,18 @@ export default function Dashboard() {
   };
 
   const handleDownloadReport = async () => {
+    setModalError("");
     if (!selectedFormat) {
-      alert("Please select a format.");
+      setModalError("Please select a format.");
       return;
     }
     if (!selectedColumns.length) {
-      alert("Please select at least one column.");
+      setModalError("Please select at least one column.");
       return;
     }
     const filteredUuids = filteredVms.map(v => v.vm_uuid).filter(Boolean);
     if (!filteredUuids.length) {
-      alert("No VMs match the current filters.");
+      setModalError("No VMs match the current filters.");
       return;
     }
     try {
@@ -885,7 +887,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Export failed:", err);
       const msg = err.response?.data?.error || err.message || "Export failed. Please try again.";
-      alert(msg);
+      setModalError(msg);
     } finally {
       setExporting(false);
     }
@@ -907,7 +909,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           {filteredVms.length > 0 && (
             <button
-              onClick={() => setShowExportPopup(true)}
+              onClick={() => { setModalError(""); setShowExportPopup(true); }}
               className="btn-premium-success flex items-center gap-1.5"
             >
               Quick Export
@@ -973,7 +975,7 @@ export default function Dashboard() {
             setDrawerTitle("Operations Inventory: All Filtered VMs");
             setDrawerOpen(true);
           }}
-          className="flex items-center gap-3 border-l-4 border-l-role-primary cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
+          className="flex items-center gap-3 border-l-4 border-l-role-primary dark:border-l-role-primary cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
         >
           <div className="p-2.5 bg-role-primary-light text-role-primary rounded-xl shrink-0 group-hover:scale-105 transition-transform">
             <Monitor size={18} />
@@ -996,7 +998,7 @@ export default function Dashboard() {
             setDrawerTitle("Live Environment: Running VMs");
             setDrawerOpen(true);
           }}
-          className="flex items-center gap-3 border-l-4 border-l-emerald-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
+          className="flex items-center gap-3 border-l-4 border-l-emerald-500 dark:border-l-emerald-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
         >
           <div className="p-2.5 bg-emerald-100 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
             <Play size={18} />
@@ -1019,7 +1021,7 @@ export default function Dashboard() {
             setDrawerTitle("Off/Stalled State: Stopped VMs");
             setDrawerOpen(true);
           }}
-          className="flex items-center gap-3 border-l-4 border-l-amber-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
+          className="flex items-center gap-3 border-l-4 border-l-amber-500 dark:border-l-amber-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
         >
           <div className="p-2.5 bg-amber-100 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
             <Square size={18} />
@@ -1042,7 +1044,7 @@ export default function Dashboard() {
             setDrawerTitle("Hypervisor Nodes Inventory");
             setDrawerOpen(true);
           }}
-          className="flex items-center gap-3 border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
+          className="flex items-center gap-3 border-l-4 border-l-indigo-500 dark:border-l-indigo-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
         >
           <div className="p-2.5 bg-indigo-100 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
             <Server size={18} />
@@ -1065,7 +1067,7 @@ export default function Dashboard() {
             setDrawerTitle("Virtualization Clusters Inventory");
             setDrawerOpen(true);
           }}
-          className="flex items-center gap-3 border-l-4 border-l-purple-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
+          className="flex items-center gap-3 border-l-4 border-l-purple-500 dark:border-l-purple-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
         >
           <div className="p-2.5 bg-purple-100 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
             <Layers size={18} />
@@ -1088,7 +1090,7 @@ export default function Dashboard() {
             setDrawerTitle("Enterprise Storage Pools");
             setDrawerOpen(true);
           }}
-          className="flex items-center gap-3 border-l-4 border-l-sky-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
+          className="flex items-center gap-3 border-l-4 border-l-sky-500 dark:border-l-sky-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 group"
         >
           <div className="p-2.5 bg-sky-100 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400 rounded-xl shrink-0 group-hover:scale-105 transition-transform">
             <Database size={18} />
@@ -1622,6 +1624,8 @@ export default function Dashboard() {
           setSelectedFormat={setSelectedFormat}
           onClose={() => setShowExportPopup(false)}
           onDownload={handleDownloadReport}
+          errorMsg={modalError}
+          setErrorMsg={setModalError}
         />
       )}
     </div>

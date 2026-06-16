@@ -9,6 +9,7 @@ export default function CapacityProjections() {
   const [vms, setVms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [projectionModel, setProjectionModel] = useState("linear");
 
   const fetchData = async () => {
     try {
@@ -90,43 +91,95 @@ export default function CapacityProjections() {
     const lastRam = historicalData[lastMonthIdx].ram;
     const lastDisk = historicalData[lastMonthIdx].disk;
 
-    let monthlyCoresGrowth = lastCores * 0.05;
-    let monthlyRamGrowth = lastRam * 0.05;
-    let monthlyDiskGrowth = lastDisk * 0.05;
-
-    // If we have multiple points, compute actual slope
-    if (historicalData.length > 1) {
-      const firstCores = historicalData[0].cores;
-      const firstRam = historicalData[0].ram;
-      const firstDisk = historicalData[0].disk;
-      const totalMonths = historicalData.length;
-
-      monthlyCoresGrowth = (lastCores - firstCores) / (totalMonths - 1) || (lastCores * 0.03);
-      monthlyRamGrowth = (lastRam - firstRam) / (totalMonths - 1) || (lastRam * 0.03);
-      monthlyDiskGrowth = (lastDisk - firstDisk) / (totalMonths - 1) || (lastDisk * 0.03);
-    }
-
-    // Project 6 months out
     const projectedData = [];
     const lastDateStr = historicalData[lastMonthIdx].month;
     const [year, month] = lastDateStr.split("-").map(Number);
 
-    for (let i = 1; i <= 6; i++) {
-      const nextDate = new Date(year, month - 1 + i, 1);
-      const nextMonthStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
-      projectedData.push({
-        month: nextMonthStr,
-        cores: Math.round(lastCores + monthlyCoresGrowth * i),
-        ram: Math.round(lastRam + monthlyRamGrowth * i),
-        disk: Math.round(lastDisk + monthlyDiskGrowth * i),
-      });
+    if (projectionModel === "linear") {
+      let monthlyCoresGrowth = lastCores * 0.05;
+      let monthlyRamGrowth = lastRam * 0.05;
+      let monthlyDiskGrowth = lastDisk * 0.05;
+
+      if (historicalData.length > 1) {
+        const firstCores = historicalData[0].cores;
+        const firstRam = historicalData[0].ram;
+        const firstDisk = historicalData[0].disk;
+        const totalMonths = historicalData.length;
+
+        monthlyCoresGrowth = (lastCores - firstCores) / (totalMonths - 1) || (lastCores * 0.03);
+        monthlyRamGrowth = (lastRam - firstRam) / (totalMonths - 1) || (lastRam * 0.03);
+        monthlyDiskGrowth = (lastDisk - firstDisk) / (totalMonths - 1) || (lastDisk * 0.03);
+      }
+
+      for (let i = 1; i <= 6; i++) {
+        const nextDate = new Date(year, month - 1 + i, 1);
+        const nextMonthStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+        projectedData.push({
+          month: nextMonthStr,
+          cores: Math.max(0, Math.round(lastCores + monthlyCoresGrowth * i)),
+          ram: Math.max(0, Math.round(lastRam + monthlyRamGrowth * i)),
+          disk: Math.max(0, Math.round(lastDisk + monthlyDiskGrowth * i)),
+        });
+      }
+    } else if (projectionModel === "exponential") {
+      let rCores = 0.05;
+      let rRam = 0.05;
+      let rDisk = 0.05;
+
+      if (historicalData.length > 1) {
+        const firstCores = historicalData[0].cores;
+        const firstRam = historicalData[0].ram;
+        const firstDisk = historicalData[0].disk;
+        const totalMonths = historicalData.length;
+
+        if (firstCores > 0 && lastCores > 0) {
+          rCores = (lastCores / firstCores) ** (1 / (totalMonths - 1)) - 1;
+        }
+        if (firstRam > 0 && lastRam > 0) {
+          rRam = (lastRam / firstRam) ** (1 / (totalMonths - 1)) - 1;
+        }
+        if (firstDisk > 0 && lastDisk > 0) {
+          rDisk = (lastDisk / firstDisk) ** (1 / (totalMonths - 1)) - 1;
+        }
+      }
+
+      rCores = Math.max(-0.5, Math.min(0.5, rCores));
+      rRam = Math.max(-0.5, Math.min(0.5, rRam));
+      rDisk = Math.max(-0.5, Math.min(0.5, rDisk));
+
+      for (let i = 1; i <= 6; i++) {
+        const nextDate = new Date(year, month - 1 + i, 1);
+        const nextMonthStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+        projectedData.push({
+          month: nextMonthStr,
+          cores: Math.max(0, Math.round(lastCores * ((1 + rCores) ** i))),
+          ram: Math.max(0, Math.round(lastRam * ((1 + rRam) ** i))),
+          disk: Math.max(0, Math.round(lastDisk * ((1 + rDisk) ** i))),
+        });
+      }
+    } else {
+      const totalMonths = historicalData.length || 1;
+      const stepCores = lastCores / totalMonths;
+      const stepRam = lastRam / totalMonths;
+      const stepDisk = lastDisk / totalMonths;
+
+      for (let i = 1; i <= 6; i++) {
+        const nextDate = new Date(year, month - 1 + i, 1);
+        const nextMonthStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+        projectedData.push({
+          month: nextMonthStr,
+          cores: Math.max(0, Math.round(lastCores + stepCores * i)),
+          ram: Math.max(0, Math.round(lastRam + stepRam * i)),
+          disk: Math.max(0, Math.round(lastDisk + stepDisk * i)),
+        });
+      }
     }
 
     return {
       historical: historicalData,
       projected: projectedData,
     };
-  }, [vms]);
+  }, [vms, projectionModel]);
 
   const chartPlots = useMemo(() => {
     if (!projectionsData) return null;
@@ -159,12 +212,23 @@ export default function CapacityProjections() {
       title="Capacity Projections"
       description="Historical inventory resource growth mapping and 6-month capacity growth projections."
       actions={
-        <button 
-          onClick={fetchData} 
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition"
-        >
-          Recalculate Projections
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={projectionModel}
+            onChange={(e) => setProjectionModel(e.target.value)}
+            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none text-sm font-semibold transition focus:border-blue-500"
+          >
+            <option value="linear" className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">Linear Growth Model</option>
+            <option value="exponential" className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">Exponential Growth Model</option>
+            <option value="average" className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">Average Load Model</option>
+          </select>
+          <button 
+            onClick={fetchData} 
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-md"
+          >
+            Recalculate Projections
+          </button>
+        </div>
       }
     >
       {error && (
@@ -279,13 +343,13 @@ export default function CapacityProjections() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
                 {projectionsData.projected.map((proj) => (
-                  <tr key={proj.month} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
+                  <tr key={proj.month} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-5 py-3 font-semibold text-slate-900 dark:text-slate-100">{proj.month}</td>
                     <td className="px-5 py-3 text-center font-mono font-bold text-blue-600 dark:text-blue-400">{proj.cores} Cores</td>
                     <td className="px-5 py-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">{proj.ram} GB</td>
                     <td className="px-5 py-3 text-center">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                        Linear Trend Model
+                        {projectionModel === "linear" ? "Linear Trend Model" : projectionModel === "exponential" ? "Exponential Growth Model" : "Average Load Model"}
                       </span>
                     </td>
                   </tr>

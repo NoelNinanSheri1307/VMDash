@@ -13,6 +13,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isResetMode, setIsResetMode] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -115,7 +116,7 @@ const Login = () => {
           confirm_password: confirmPassword,
         });
 
-        alert("Password reset successful!");
+        setSuccessMsg("Password reset successful! You can now log in.");
         setIsResetMode(false);
         setNewPassword("");
         setConfirmPassword("");
@@ -144,12 +145,14 @@ const Login = () => {
   const handleForgotPassword = () => {
     setIsResetMode(true);
     setError("");
+    setSuccessMsg("");
     setPassword("");
   };
 
   const handleBackToLogin = () => {
     setIsResetMode(false);
     setError("");
+    setSuccessMsg("");
     setNewPassword("");
     setConfirmPassword("");
   };
@@ -187,6 +190,11 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+          {successMsg && (
+            <div style={{ background: "rgba(16,185,129,0.18)", color: "#a7f3d0", border: "1px solid rgba(16,185,129,0.35)", textAlign: "center", padding: "10px 14px", borderRadius: "10px", marginBottom: "16px", fontSize: "14px" }}>
+              {successMsg}
+            </div>
+          )}
           {error && (
             <div style={{ background: "rgba(239,68,68,0.18)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.35)", textAlign: "center", padding: "10px 14px", borderRadius: "10px", marginBottom: "16px", fontSize: "14px" }}>
               {error}

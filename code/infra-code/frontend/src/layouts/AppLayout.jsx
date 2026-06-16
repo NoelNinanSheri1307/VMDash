@@ -21,7 +21,8 @@ import {
   Moon,
   LogOut,
   UserCheck,
-  RefreshCw
+  RefreshCw,
+  Bell
 } from "lucide-react";
 
 const AppLayout = ({ children }) => {
@@ -41,6 +42,37 @@ const AppLayout = ({ children }) => {
     }
   }
   const staffCode = user.staff_code;
+
+  const [notifications, setNotifications] = useState([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  const fetchNotifs = async () => {
+    try {
+      const res = await proxmoxApi.get("/proxmox/notifications");
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (staffCode && staffCode !== "N/A") {
+      fetchNotifs();
+      const interval = setInterval(fetchNotifs, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [staffCode]);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const handleMarkAllRead = async () => {
+    try {
+      await proxmoxApi.put("/proxmox/notifications/read-all");
+      fetchNotifs();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute("data-role", role);
@@ -128,7 +160,8 @@ const AppLayout = ({ children }) => {
       ] : [
         { to: "/analytics/entity-usage", label: "Entity Usage" },
         { to: "/analytics/division-usage", label: "Division Usage" },
-        { to: "/analytics/capacity-projection", label: "Capacity Projections" }
+        { to: "/analytics/capacity-projection", label: "Capacity Projections" },
+        { to: "/operations-governance", label: "Operations Governance" }
       ]
     },
     {
@@ -146,8 +179,8 @@ const AppLayout = ({ children }) => {
       id: "administration",
       title: "Administration",
       icon: <ShieldCheck size={18} />,
-      roles: ["admin"],
-      items: [
+      roles: ["admin", "manager"],
+      items: role === "admin" ? [
         { to: "/administration/requests", label: "VM Request Inbox" },
         { to: "/add", label: "Add VM Provision" },
         { to: "/administration/ownership", label: "VM Ownership" },
@@ -155,6 +188,10 @@ const AppLayout = ({ children }) => {
         { to: "/add-user", label: "Add User Credentials" },
         { to: "/administration/sync", label: "Sync Center" },
         { to: "/administration/sync-logs", label: "Sync Logs" }
+      ] : [
+        { to: "/administration/requests", label: "VM Request Inbox" },
+        { to: "/administration/ownership", label: "VM Ownership" },
+        { to: "/administration/users-list", label: "User Directory" }
       ]
     },
     {
@@ -340,6 +377,72 @@ const AppLayout = ({ children }) => {
 
           {/* Action Tools */}
           <div className="flex items-center gap-3">
+            {/* Notification Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition relative"
+                aria-label="Notifications"
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {isNotifOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div className="fixed inset-0 z-30" onClick={() => setIsNotifOpen(false)} />
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-40 overflow-hidden"
+                    >
+                      <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Recent Notifications</span>
+                        {unreadCount > 0 && (
+                          <button 
+                            onClick={handleMarkAllRead}
+                            className="text-[10px] text-blue-500 hover:underline font-semibold"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-slate-400">No notifications.</div>
+                        ) : (
+                          notifications.slice(0, 5).map((n) => (
+                            <div key={n.id} className={`p-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!n.is_read ? "bg-blue-50/10 dark:bg-blue-950/10" : ""}`}>
+                              <div className="flex justify-between items-start gap-2 mb-1">
+                                <span className={`font-bold truncate max-w-[150px] ${!n.is_read ? "text-slate-800 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"}`}>{n.title}</span>
+                                <span className="text-[8px] text-slate-400 font-mono shrink-0">{n.created_at?.split(" ")[0]}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{n.message}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <Link
+                        to="/notifications"
+                        onClick={() => setIsNotifOpen(false)}
+                        className="block text-center py-2 text-[10px] font-bold text-blue-600 hover:bg-slate-50 dark:hover:bg-slate-800 border-t border-slate-100 dark:border-slate-800"
+                      >
+                        View All Notifications
+                      </Link>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Theme Switcher Toggle */}
             <button
               onClick={toggleTheme}

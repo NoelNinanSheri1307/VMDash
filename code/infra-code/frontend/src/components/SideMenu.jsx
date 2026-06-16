@@ -7,6 +7,8 @@ import webApi from "../api/webapi";
 const SideMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ show: false, message: "", onConfirm: null });
+  const [alertModal, setAlertModal] = useState({ show: false, title: "", message: "", type: "info" });
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -217,31 +219,44 @@ const SideMenu = () => {
         : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
-  const handleSync = async () => {
+  const handleSync = () => {
     if (syncing) return;
-    const confirmSync = window.confirm("Syncing can take time to complete. Do you want to proceed?");
-    if (!confirmSync) return;
-
-    setSyncing(true);
-    try {
-      const post_urls = [
-        "/proxmox/cluster/sync",
-        "/proxmox/nodes/sync",
-        "/proxmox/storage/sync",
-        "/proxmox/vms/sync",
-      ];
-      for (const url of post_urls) {
-        await proxmoxApi.post(url);
+    setConfirmModal({
+      show: true,
+      message: "Syncing can take time to complete. Do you want to proceed?",
+      onConfirm: async () => {
+        setSyncing(true);
+        try {
+          const post_urls = [
+            "/proxmox/cluster/sync",
+            "/proxmox/nodes/sync",
+            "/proxmox/storage/sync",
+            "/proxmox/vms/sync",
+          ];
+          for (const url of post_urls) {
+            await proxmoxApi.post(url);
+          }
+          setAlertModal({
+            show: true,
+            title: "Sync Success",
+            message: "Sync completed successfully.",
+            type: "success"
+          });
+          triggerVmRefresh();
+        } catch (error) {
+          console.error("Sync failed:", error);
+          setAlertModal({
+            show: true,
+            title: "Sync Error",
+            message: "Sync failed! Check console logs.",
+            type: "error"
+          });
+        } finally {
+          setSyncing(false);
+          setIsOpen(false);
+        }
       }
-      alert("Sync completed successfully");
-      triggerVmRefresh();
-    } catch (error) {
-      console.error("Sync failed:", error);
-      alert("Sync failed! Check console logs");
-    } finally {
-      syncing = false;
-      setIsOpen(false);
-    }
+    });
   };
 
   const handleLogout = async () => {
@@ -435,6 +450,56 @@ const SideMenu = () => {
           </div>
         </div>
       </nav>
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Action</h3>
+            <p className="text-sm text-slate-600 mb-6">{confirmModal.message}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ show: false, message: "", onConfirm: null })}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ show: false, message: "", onConfirm: null });
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert Modal */}
+      {alertModal.show && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl">
+            <h3 className={`text-lg font-bold mb-2 ${alertModal.type === "error" ? "text-red-600" : "text-emerald-600"}`}>
+              {alertModal.title}
+            </h3>
+            <p className="text-sm text-slate-600 mb-6">{alertModal.message}</p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setAlertModal({ show: false, title: "", message: "", type: "info" })}
+                className="px-6 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

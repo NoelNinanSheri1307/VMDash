@@ -88,7 +88,7 @@ const AddUser = () => {
                 placeholder="Staff Code"
                 value={staffCode}
                 onChange={(e) => setStaffCode(e.target.value)}
-                className="w-full px-3.5 py-3 rounded-lg border border-slate-300 dark:border-slate-800 text-sm bg-white dark:bg-slate-850 text-slate-850 dark:text-white transition focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                className="w-full px-3.5 py-3 rounded-lg border border-slate-300 dark:border-slate-800 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white transition focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                 required
               />
             </div>
@@ -97,14 +97,14 @@ const AddUser = () => {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3.5 py-3 rounded-lg border border-slate-300 dark:border-slate-800 text-sm bg-white dark:bg-slate-850 text-slate-850 dark:text-white transition focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                className="w-full px-3.5 py-3 rounded-lg border border-slate-300 dark:border-slate-800 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white transition focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                 required
               >
-                <option value="" disabled>
+                <option value="" disabled className="text-slate-400 bg-white dark:bg-slate-900">
                   Select user role
                 </option>
-                <option value="admin">Admin</option>
-                <option value="view_only">View Only</option>
+                <option value="admin" className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">Admin</option>
+                <option value="view_only" className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">View Only</option>
               </select>
             </div>
           </div>

@@ -9,6 +9,8 @@ const ReportPopup = ({
   onClose,
   onDownload,
   onSave,
+  errorMsg,
+  setErrorMsg,
 }) => {
   const [highlightedAvailable, setHighlightedAvailable] = useState([]);
   const [highlightedSelected, setHighlightedSelected] = useState([]);
@@ -73,6 +75,15 @@ const ReportPopup = ({
         <h2 className="m-0 mb-4 px-4 py-3 rounded-xl bg-sky-50 border border-slate-200 text-[18px] font-bold text-slate-800">
           Customize Report
         </h2>
+
+        {errorMsg && (
+          <div className="mb-4 mx-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-800 flex items-center justify-between">
+            <span>{errorMsg}</span>
+            {setErrorMsg && (
+              <button onClick={() => setErrorMsg("")} className="text-rose-800 hover:opacity-80 font-bold ml-3">✕</button>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-row items-start gap-8 min-h-[320px]">
           <div className="flex-1 flex flex-col">

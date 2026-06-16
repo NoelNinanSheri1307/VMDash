@@ -9,6 +9,7 @@ const ChangePassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -17,6 +18,7 @@ const ChangePassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMsg("");
 
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match. Try again.");
@@ -30,8 +32,10 @@ const ChangePassword = () => {
         new_password: newPassword,
         confirm_password: confirmPassword,
       });
-      alert("Password changed successfully!");
-      navigate("/dashboard");
+      setSuccessMsg("Password changed successfully! Redirecting in 2 seconds...");
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.error || "Password change failed");
     } finally {
@@ -78,13 +82,18 @@ const ChangePassword = () => {
         </h1>
 
         <form onSubmit={handleSubmit} className="w-full">
+          {successMsg && (
+            <div className="bg-emerald-500 text-white text-center px-[14px] py-3 rounded-[10px] mb-4 border border-emerald-300">
+              {successMsg}
+            </div>
+          )}
           {error && (
             <div className="bg-[#fb473d] text-white text-center px-[14px] py-3 rounded-[10px] mb-4 border border-[#fecaca]">
               {error}
             </div>
           )}
 
-          <div className="flex items-center mb-[18px] bg-white/90 dark:bg-slate-850/90 rounded-xl px-[10px] py-[6px] border border-blue-500/50 dark:border-blue-500/30 shadow-sm w-full">
+          <div className="flex items-center mb-[18px] bg-white/90 dark:bg-slate-800/90 rounded-xl px-[10px] py-[6px] border border-blue-500/50 dark:border-blue-500/30 shadow-sm w-full">
             <div className="w-11 h-11 bg-[#4459c9] rounded-xl flex items-center justify-center mr-3 shrink-0 text-white shadow-[0_8px_18px_rgba(68,89,201,0.35)]">
               <svg
                 className="w-[22px] h-[22px]"
@@ -105,11 +114,11 @@ const ChangePassword = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-slate-850 dark:text-white outline-none placeholder:text-slate-400"
+              className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-slate-800 dark:text-white outline-none placeholder:text-slate-400"
             />
           </div>
 
-          <div className="flex items-center mb-[18px] bg-white/90 dark:bg-slate-850/90 rounded-xl px-[10px] py-[6px] border border-blue-500/50 dark:border-blue-500/30 shadow-sm w-full">
+          <div className="flex items-center mb-[18px] bg-white/90 dark:bg-slate-800/90 rounded-xl px-[10px] py-[6px] border border-blue-500/50 dark:border-blue-500/30 shadow-sm w-full">
             <div className="w-11 h-11 bg-[#4459c9] rounded-xl flex items-center justify-center mr-3 shrink-0 text-white shadow-[0_8px_18px_rgba(68,89,201,0.35)]">
               <svg
                 className="w-[22px] h-[22px]"
@@ -126,7 +135,7 @@ const ChangePassword = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-slate-850 dark:text-white outline-none placeholder:text-slate-400"
+              className="flex-1 border-none bg-transparent px-[10px] py-[14px] text-[18px] text-slate-800 dark:text-white outline-none placeholder:text-slate-400"
             />
           </div>
 

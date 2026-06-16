@@ -184,7 +184,7 @@ export default function Home() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           {/* Field Selector */}
-          <div className="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-850 px-2 py-1.5 transition w-full sm:min-w-[200px]">
+          <div className="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-2 py-1.5 transition w-full sm:min-w-[200px]">
             <div className="w-8 h-8 bg-blue-500/10 text-blue-600 rounded-lg flex items-center justify-center mr-2">
               <Filter size={16} />
             </div>
@@ -208,7 +208,7 @@ export default function Home() {
           </div>
 
           {/* Search Box */}
-          <div className="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-850 px-2 py-1.5 transition w-full sm:min-w-[240px]">
+          <div className="flex items-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-2 py-1.5 transition w-full sm:min-w-[240px]">
             <div className="w-8 h-8 bg-blue-500/10 text-blue-600 rounded-lg flex items-center justify-center mr-2">
               <Search size={16} />
             </div>
@@ -264,7 +264,7 @@ export default function Home() {
               sortedVms.map((vm, index) => (
                 <tr 
                   key={index}
-                  className="transition hover:bg-slate-50 dark:hover:bg-slate-850/50 text-slate-700 dark:text-slate-300"
+                  className="transition hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
                 >
                   <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{vm.vm_name || "-"}</td>
                   <td className="px-4 py-3">{vm.host_name || "-"}</td>

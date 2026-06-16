@@ -177,6 +177,11 @@ export default function CustomReports() {
   const [selectedFormat,   setSelectedFormat]   = useState("csv");
   const [exporting,        setExporting]        = useState(false);
 
+  const [actionError, setActionError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+  const [modalError, setModalError] = useState("");
+
   // ── Fetch dynamic templates & saved configs ───────────────────────────────
   const fetchSavedConfigs = async (p = 1) => {
     try {
@@ -351,6 +356,9 @@ export default function CustomReports() {
     .filter((f) => f !== "all").length + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0);
 
   const openPreset = (preset) => {
+    setActionError("");
+    setSuccessMsg("");
+    setModalError("");
     setSelectedColumns(preset.columns);
     setSelectedFormat("csv");
     setActivePresetName(preset.title);
@@ -361,6 +369,9 @@ export default function CustomReports() {
   };
 
   const openSavedReport = (report) => {
+    setActionError("");
+    setSuccessMsg("");
+    setModalError("");
     setSelectedColumns(report.columns);
     setSelectedFormat("csv");
     setActivePresetName(report.title);
@@ -372,8 +383,9 @@ export default function CustomReports() {
 
   // ── Save Configurations CRUD ───────────────────────────────────────────────
   const handleOpenSaveModal = () => {
+    setModalError("");
     if (selectedColumns.length === 0) {
-      alert("Configure a report first by selecting columns.");
+      setModalError("Configure a report first by selecting columns.");
       return;
     }
     setShowSaveModal(true);
@@ -381,8 +393,9 @@ export default function CustomReports() {
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
+    setModalError("");
     if (!saveTitle.trim()) {
-      alert("Report title is required");
+      setModalError("Report title is required");
       return;
     }
     try {
@@ -405,7 +418,7 @@ export default function CustomReports() {
       };
       
       await proxmoxApi.post("/proxmox/reports/saved", payload);
-      alert("Report configuration saved successfully!");
+      setSuccessMsg("Report configuration saved successfully!");
       setShowSaveModal(false);
       setSaveTitle("");
       setSaveDescription("");
@@ -413,20 +426,29 @@ export default function CustomReports() {
     } catch (err) {
       console.error("Save failed:", err);
       const msg = err.response?.data?.error || "Failed to save configuration.";
-      alert(msg);
+      setModalError(msg);
     }
   };
 
-  const handleDeleteConfig = async (id, e) => {
+  const handleDeleteConfig = (id, e) => {
     e.stopPropagation();
-    if (!window.confirm("Delete this saved configuration permanently?")) return;
-    try {
-      await proxmoxApi.delete(`/proxmox/reports/saved/${id}`);
-      fetchSavedConfigs(1);
-    } catch (err) {
-      console.error("Delete config failed:", err);
-      alert("Failed to delete configuration.");
-    }
+    setActionError("");
+    setSuccessMsg("");
+    setConfirmModal({
+      show: true,
+      title: "Delete Saved Configuration",
+      message: "Delete this saved configuration permanently?",
+      onConfirm: async () => {
+        try {
+          await proxmoxApi.delete(`/proxmox/reports/saved/${id}`);
+          setSuccessMsg("Configuration deleted successfully.");
+          fetchSavedConfigs(1);
+        } catch (err) {
+          console.error("Delete config failed:", err);
+          setActionError("Failed to delete configuration.");
+        }
+      }
+    });
   };
 
   const handleToggleFavorite = async (id, e) => {
@@ -441,9 +463,10 @@ export default function CustomReports() {
 
   // ── Export handler (Preserves Rule 11 & isolates Rule 13) ─────────────────
   const handleDownload = async () => {
-    if (!selectedFormat)           { alert("Please select a format.");          return; }
-    if (!selectedColumns.length)   { alert("Please select at least one column."); return; }
-    if (!filteredUuids.length)     { alert("No VMs match the current filters."); return; }
+    setModalError("");
+    if (!selectedFormat)           { setModalError("Please select a format.");          return; }
+    if (!selectedColumns.length)   { setModalError("Please select at least one column."); return; }
+    if (!filteredUuids.length)     { setModalError("No VMs match the current filters."); return; }
     try {
       setExporting(true);
       
@@ -535,7 +558,7 @@ export default function CustomReports() {
     } catch (err) {
       console.error("Export failed:", err);
       const msg = err.response?.data?.error || err.message || "Export failed. Please try again.";
-      alert(msg);
+      setModalError(msg);
     } finally {
       setExporting(false);
     }
@@ -543,6 +566,7 @@ export default function CustomReports() {
 
   // ── Template Editor CRUD (Admin Only - Rule 16 constraints) ───────────────
   const handleOpenTemplateModal = (tpl = null) => {
+    setModalError("");
     if (tpl) {
       setEditTemplateId(tpl.id);
       setTemplateTitle(tpl.title);
@@ -561,12 +585,13 @@ export default function CustomReports() {
 
   const handleSaveTemplate = async (e) => {
     e.preventDefault();
+    setModalError("");
     if (!templateTitle.trim()) {
-      alert("Title is required");
+      setModalError("Title is required");
       return;
     }
     if (templateColumns.length === 0) {
-      alert("Select at least one column");
+      setModalError("Select at least one column");
       return;
     }
     try {
@@ -593,30 +618,41 @@ export default function CustomReports() {
         await proxmoxApi.post("/proxmox/report/templates", payload);
       }
       
-      alert("Template saved successfully!");
+      setSuccessMsg("Template saved successfully!");
       setShowTemplateModal(false);
       fetchTemplates();
     } catch (err) {
       console.error("Template save failed:", err);
       const msg = err.response?.data?.error || "Failed to save template.";
-      alert(msg);
+      setModalError(msg);
     }
   };
 
-  const handleDeleteTemplate = async (id, e) => {
+  const handleDeleteTemplate = (id, e) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this template?")) return;
-    try {
-      await proxmoxApi.delete(`/proxmox/report/templates/${id}`);
-      fetchTemplates();
-    } catch (err) {
-      console.error("Delete template failed:", err);
-      alert("Failed to delete template.");
-    }
+    setActionError("");
+    setSuccessMsg("");
+    setConfirmModal({
+      show: true,
+      title: "Delete Report Template",
+      message: "Are you sure you want to delete this template?",
+      onConfirm: async () => {
+        try {
+          await proxmoxApi.delete(`/proxmox/report/templates/${id}`);
+          setSuccessMsg("Template deleted successfully.");
+          fetchTemplates();
+        } catch (err) {
+          console.error("Delete template failed:", err);
+          setActionError("Failed to delete template.");
+        }
+      }
+    });
   };
 
   const handleCloneTemplate = async (tpl, e) => {
     e.stopPropagation();
+    setActionError("");
+    setSuccessMsg("");
     try {
       const payload = {
         title: `${tpl.title} (Copy)`,
@@ -626,11 +662,11 @@ export default function CustomReports() {
         enabled: tpl.enabled
       };
       await proxmoxApi.post("/proxmox/report/templates", payload);
-      alert("Template cloned successfully!");
+      setSuccessMsg("Template cloned successfully!");
       fetchTemplates();
     } catch (err) {
       console.error("Clone failed:", err);
-      alert("Failed to clone template.");
+      setActionError("Failed to clone template.");
     }
   };
 
@@ -658,6 +694,20 @@ export default function CustomReports() {
       title="Dynamic Report Operations Center"
       description="Build customizable report configs, manage system templates, and view audit history logs."
     >
+      {/* Success/Error Banners */}
+      {successMsg && (
+        <div className="mb-6 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 text-sm text-emerald-800 dark:text-emerald-400 flex items-center justify-between shadow-sm">
+          <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg("")} className="text-emerald-800 dark:text-emerald-400 hover:opacity-85 font-bold ml-4">✕</button>
+        </div>
+      )}
+      {actionError && (
+        <div className="mb-6 rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 text-sm text-rose-800 dark:text-rose-400 flex items-center justify-between shadow-sm">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError("")} className="text-rose-800 dark:text-rose-400 hover:opacity-85 font-bold ml-4">✕</button>
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm mb-4">
           {error}
@@ -1085,6 +1135,8 @@ export default function CustomReports() {
           onClose={() => setShowPopup(false)}
           onDownload={handleDownload}
           onSave={handleOpenSaveModal}
+          errorMsg={modalError}
+          setErrorMsg={setModalError}
         />
       )}
 
@@ -1098,6 +1150,12 @@ export default function CustomReports() {
             <h3 className="font-bold text-base text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
               <Plus size={18} className="text-blue-500" /> Save Report Configuration
             </h3>
+            {modalError && (
+              <div className="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-800 flex items-center justify-between">
+                <span>{modalError}</span>
+                <button type="button" onClick={() => setModalError("")} className="text-rose-800 hover:opacity-80 font-bold ml-3">✕</button>
+              </div>
+            )}
             <form onSubmit={handleSaveConfig} className="flex flex-col gap-4">
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Report Title</label>
@@ -1151,6 +1209,12 @@ export default function CustomReports() {
               {editTemplateId ? <Edit size={18} className="text-blue-500" /> : <Plus size={18} className="text-blue-500" />}
               {editTemplateId ? "Edit System Template" : "Add System Preset Template"}
             </h3>
+            {modalError && (
+              <div className="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-800 flex items-center justify-between">
+                <span>{modalError}</span>
+                <button type="button" onClick={() => setModalError("")} className="text-rose-800 hover:opacity-80 font-bold ml-3">✕</button>
+              </div>
+            )}
             <form onSubmit={handleSaveTemplate} className="flex flex-col gap-4">
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Template Title</label>
@@ -1239,6 +1303,35 @@ export default function CustomReports() {
               </div>
             </form>
           </Card>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{confirmModal.title}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">{confirmModal.message}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ show: false, title: "", message: "", onConfirm: null })}
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ show: false, title: "", message: "", onConfirm: null });
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </PageContainer>

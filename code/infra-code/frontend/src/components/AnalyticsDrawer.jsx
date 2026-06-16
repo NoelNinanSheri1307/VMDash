@@ -48,6 +48,7 @@ export default function AnalyticsDrawer({
   const [selectedColumns, setSelectedColumns] = useState(["vm_name", "os", "status", "cpus", "max_memory", "max_disk"]);
   const [selectedFormat, setSelectedFormat] = useState("csv");
   const [exporting, setExporting] = useState(false);
+  const [modalError, setModalError] = useState("");
   const [storageVms, setStorageVms] = useState([]);
   const [loadingStorage, setLoadingStorage] = useState(false);
 
@@ -143,8 +144,9 @@ export default function AnalyticsDrawer({
   // Export handler for VMs
   const handleExport = async () => {
     const uuids = associatedVms.map(v => v.vm_uuid || v.uuid).filter(Boolean);
+    setModalError("");
     if (!uuids.length) {
-      alert("No matching VM records found to export.");
+      setModalError("No matching VM records found to export.");
       return;
     }
     try {
@@ -171,7 +173,7 @@ export default function AnalyticsDrawer({
       setShowPopup(false);
     } catch (err) {
       console.error("Export failed inside drawer:", err);
-      alert("Failed to export. Please try again.");
+      setModalError("Failed to export. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -207,7 +209,7 @@ export default function AnalyticsDrawer({
           <div className="flex items-center gap-2">
             {associatedVms.length > 0 && (
               <button
-                onClick={() => setShowPopup(true)}
+                onClick={() => { setModalError(""); setShowPopup(true); }}
                 className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition"
                 title="Export matching VMs report"
               >
@@ -502,6 +504,8 @@ export default function AnalyticsDrawer({
           setSelectedFormat={setSelectedFormat}
           onClose={() => setShowPopup(false)}
           onDownload={handleExport}
+          errorMsg={modalError}
+          setErrorMsg={setModalError}
         />
       )}
     </dAnimatePresence>

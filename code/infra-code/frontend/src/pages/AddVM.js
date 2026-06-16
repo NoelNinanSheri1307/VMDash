@@ -84,7 +84,7 @@ function AddVM() {
 
       <form onSubmit={handleSubmit} className="w-full max-w-[1100px]">
         {/* VM DETAILS SECTION */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 mb-8 shadow-md transition hover:shadow-lg text-slate-850 dark:text-slate-250">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 mb-8 shadow-md transition hover:shadow-lg text-slate-800 dark:text-slate-250">
           <div className="flex items-center gap-3 text-lg font-semibold text-slate-800 dark:text-slate-100 mb-5 pb-2 border-b-2 border-blue-600 dark:border-blue-500">
             <svg
               className="w-6 h-6 text-blue-500"
@@ -115,7 +115,7 @@ function AddVM() {
                   placeholder={key === "time_created" ? "YYYY-MM-DD" : `Enter ${key.replace(/_/g, " ")}`}
                   required={key === "vm_name"}
                   className="
-                    w-full px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-800 text-sm bg-white dark:bg-slate-850 text-slate-800 dark:text-white
+                    w-full px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-800 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white
                     transition
                     focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10
                     placeholder:text-slate-400 dark:placeholder:text-slate-500
@@ -129,7 +129,7 @@ function AddVM() {
         </div>
 
         {/* USER DETAILS SECTION */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 mb-8 shadow-md transition hover:shadow-lg text-slate-850 dark:text-slate-250">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-7 mb-8 shadow-md transition hover:shadow-lg text-slate-800 dark:text-slate-250">
           <div className="flex items-center gap-3 text-lg font-semibold text-slate-800 dark:text-slate-100 mb-5 pb-2 border-b-2 border-blue-600 dark:border-blue-500">
             <svg
               className="w-6 h-6 text-blue-500"
@@ -147,7 +147,7 @@ function AddVM() {
           {users.map((user, index) => (
             <div
               key={index}
-              className="bg-slate-50/50 dark:bg-slate-950/40 p-7 rounded-xl border border-slate-200 dark:border-slate-800 mb-5 shadow-sm text-slate-850 dark:text-slate-200"
+              className="bg-slate-50/50 dark:bg-slate-950/40 p-7 rounded-xl border border-slate-200 dark:border-slate-800 mb-5 shadow-sm text-slate-800 dark:text-slate-200"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {Object.keys(user).map((key) => (
@@ -165,7 +165,7 @@ function AddVM() {
                         placeholder={`Enter ${key.replace(/_/g, " ")}`}
                         autoComplete="off"
                         className="
-                          w-full px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-800 text-sm bg-white dark:bg-slate-850 text-slate-800 dark:text-white
+                          w-full px-3.5 py-3 rounded-lg border border-slate-200 dark:border-slate-800 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white
                           transition
                           focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10
                           placeholder:text-slate-400 dark:placeholder:text-slate-500

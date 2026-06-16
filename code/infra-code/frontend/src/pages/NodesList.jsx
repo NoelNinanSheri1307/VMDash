@@ -333,7 +333,7 @@ export default function NodesList() {
                 filteredAndSortedNodes.map((node) => (
                   <tr
                     key={node.node_name}
-                    className="transition hover:bg-slate-50 dark:hover:bg-slate-850/50 text-slate-700 dark:text-slate-300"
+                    className="transition hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
                   >
                     <td className="px-5 py-4 font-bold text-slate-900 dark:text-slate-50">{node.node_name}</td>
                     <td className="px-5 py-4 font-semibold">{node.cluster_name || "N/A"}</td>

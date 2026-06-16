@@ -75,6 +75,9 @@
 .border-role-primary {
   border-color: var(--color-role-primary) !important;
 }
+.border-l-role-primary {
+  border-left-color: var(--color-role-primary) !important;
+}
 .border-role-primary-light {
   border-color: var(--color-role-primary-border) !important;
 }

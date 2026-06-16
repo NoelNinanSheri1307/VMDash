@@ -236,7 +236,7 @@ export default function ClustersList() {
                   <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
                     Allocated Cluster Resources
                   </span>
-                  <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-850">
+                  <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between items-center text-[11px]">
                       <span className="text-slate-500 flex items-center gap-1"><Cpu size={12} /> Cores</span>
                       <span className="font-bold text-slate-800 dark:text-slate-100">{cluster.allocatedCpu} Cores</span>
@@ -272,7 +272,7 @@ export default function ClustersList() {
           {/* Cluster Chart Distribution */}
           <Card className="p-4 flex flex-col justify-between h-[380px] mt-8">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-sm text-slate-850 dark:text-slate-100">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">
                 Workload Density (VM Count by Cluster)
               </h3>
               <Badge variant="info">Workloads</Badge>

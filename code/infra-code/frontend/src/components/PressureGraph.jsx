@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Plot from "react-plotly.js";
 import useLazyUpdate from "../hooks/useLazyUpdate";
+import proxmoxApi from "../api/proxmoxapi";
 
 const COLORS = ["#fbbf24", "#60a5fa", "#34d399", "#f87171", "#a78bfa"];
-const API = "/api/proxmox";
 
 function hexToRgba(hex, alpha = 0.2) {
   const h = hex.replace("#", "");
@@ -63,9 +63,8 @@ export default function PressureGraph({
 
       try {
         setLoading(true);
-        const res = await fetch(`${API}${apiPath}?${qs}`);
-        const json = await res.json();
-        setGraph(json);
+        const res = await proxmoxApi.get(`${apiPath}?${qs}`);
+        setGraph(res.data);
       } catch (e) {
         console.error("Graph fetch error:", e);
       } finally {

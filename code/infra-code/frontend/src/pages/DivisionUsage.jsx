@@ -59,7 +59,21 @@ export default function DivisionUsage() {
     const cores = divisions.map((d) => divisionStats[d].cores);
     const ram = divisions.map((d) => divisionStats[d].ram);
 
-    return { divisions, counts, cores, ram };
+    // Totals for root node of treemaps
+    const totalCount = counts.reduce((a, b) => a + b, 0);
+    const totalCores = cores.reduce((a, b) => a + b, 0);
+
+    // Format for Treemap 1: VM Allocation
+    const vmLabels = ["Divisions", ...divisions];
+    const vmParents = ["", ...divisions.map(() => "Divisions")];
+    const vmValues = [totalCount, ...counts];
+
+    // Format for Treemap 2: CPU Cores
+    const cpuLabels = ["All Resource Cores", ...divisions];
+    const cpuParents = ["", ...divisions.map(() => "All Resource Cores")];
+    const cpuValues = [totalCores, ...cores];
+
+    return { divisions, counts, cores, ram, vmLabels, vmParents, vmValues, cpuLabels, cpuParents, cpuValues };
   }, [divisionStats]);
 
   if (loading) {
@@ -73,6 +87,12 @@ export default function DivisionUsage() {
   }
 
   const hasData = chartData.divisions.length > 0;
+
+  // Custom Sunset Gradient hex array
+  const sunsetColors = [
+    "#36096d", "#5d0e7d", "#841386", "#aa1a82", 
+    "#cf2673", "#ef3a5b", "#f95b45", "#ff7f31", "#ffa600"
+  ];
 
   return (
     <PageContainer
@@ -99,29 +119,28 @@ export default function DivisionUsage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Donut Chart: VMs per Division */}
+          {/* Treemap Chart 1: VMs per Division */}
           <Card className="flex flex-col gap-4">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200">VM Allocation Distribution</h3>
-            <div className="h-[350px] w-full relative overflow-hidden flex items-center justify-center">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200">VM Allocation Distribution Treemap</h3>
+            <div className="h-[380px] w-full relative overflow-hidden flex items-center justify-center">
               <Plot
                 data={[
                   {
-                    type: "pie",
-                    hole: 0.5,
-                    labels: chartData.divisions,
-                    values: chartData.counts,
-                    textinfo: "percent+value",
-                    hovertemplate: "Division: %{label}<br>VMs: %{value}<br>Ratio: %{percent}<extra></extra>",
+                    type: "treemap",
+                    labels: chartData.vmLabels,
+                    parents: chartData.vmParents,
+                    values: chartData.vmValues,
+                    textinfo: "label+value+percent parent",
+                    hovertemplate: "Division: %{label}<br>VMs: %{value}<extra></extra>",
                     marker: {
-                      colors: ["#1D4ED8", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#64748B"]
+                      colorscale: "Sunset",
+                      colors: sunsetColors
                     }
                   }
                 ]}
                 layout={{
                   autosize: true,
-                  margin: { t: 20, b: 20, l: 20, r: 20 },
-                  showlegend: true,
-                  legend: { orientation: "h", y: -0.1 },
+                  margin: { t: 10, b: 10, l: 10, r: 10 },
                   paper_bgcolor: "transparent",
                   plot_bgcolor: "transparent",
                   font: { color: "#64748B" }
@@ -133,38 +152,31 @@ export default function DivisionUsage() {
             </div>
           </Card>
 
-          {/* Bar Chart: Resource Shares */}
+          {/* Treemap Chart 2: CPU Cores per Division */}
           <Card className="flex flex-col gap-4">
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200">CPU & RAM Allocation Shares</h3>
-            <div className="h-[350px] w-full relative overflow-hidden flex items-center justify-center">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200">CPU Core Allocation Treemap</h3>
+            <div className="h-[380px] w-full relative overflow-hidden flex items-center justify-center">
               <Plot
                 data={[
                   {
-                    type: "bar",
-                    name: "CPU Cores",
-                    x: chartData.divisions,
-                    y: chartData.cores,
-                    marker: { color: "#3B82F6" }
-                  },
-                  {
-                    type: "bar",
-                    name: "RAM (GB)",
-                    x: chartData.divisions,
-                    y: chartData.ram,
-                    marker: { color: "#10B981" }
+                    type: "treemap",
+                    labels: chartData.cpuLabels,
+                    parents: chartData.cpuParents,
+                    values: chartData.cpuValues,
+                    textinfo: "label+value+percent parent",
+                    hovertemplate: "Division: %{label}<br>Allocated Cores: %{value}<extra></extra>",
+                    marker: {
+                      colorscale: "Sunsetdark",
+                      colors: sunsetColors
+                    }
                   }
                 ]}
                 layout={{
                   autosize: true,
-                  margin: { t: 20, b: 40, l: 40, r: 20 },
-                  barmode: "group",
-                  showlegend: true,
-                  legend: { orientation: "h", y: -0.2 },
+                  margin: { t: 10, b: 10, l: 10, r: 10 },
                   paper_bgcolor: "transparent",
                   plot_bgcolor: "transparent",
-                  font: { color: "#64748B" },
-                  xaxis: { gridcolor: "transparent" },
-                  yaxis: { gridcolor: "rgba(100, 116, 139, 0.1)" }
+                  font: { color: "#64748B" }
                 }}
                 useResizeHandler
                 style={{ width: "100%", height: "100%" }}
@@ -192,7 +204,7 @@ export default function DivisionUsage() {
                 {chartData.divisions.map((div) => {
                   const s = divisionStats[div];
                   return (
-                    <tr key={div} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
+                    <tr key={div} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <td className="px-5 py-3 font-semibold text-slate-900 dark:text-slate-100">{div}</td>
                       <td className="px-5 py-3 text-center font-bold">{s.count}</td>
                       <td className="px-5 py-3 text-center font-mono">{s.cores} Cores</td>

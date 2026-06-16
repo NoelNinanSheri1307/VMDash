@@ -34,6 +34,8 @@ import MyReports from './pages/MyReports.jsx';
 import CustomReports from './pages/CustomReports.jsx';
 import ReportHistory from './pages/ReportHistory.jsx';
 import ReportAuditDashboard from './pages/ReportAuditDashboard.jsx';
+import NotificationsCenter from './pages/NotificationsCenter.jsx';
+import OperationsGovernance from './pages/OperationsGovernance.jsx';
 
 // Role-aware redirect for /reports
 function ReportsRedirect() {
@@ -78,6 +80,10 @@ function AppContent() {
       <Route path="/analytics/division-usage" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><DivisionUsage /></AppLayout></ProtectedRoute>} />
       <Route path="/analytics/capacity-projection" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><CapacityProjections /></AppLayout></ProtectedRoute>} />
       <Route path="/analytics/my-analytics" element={<ProtectedRoute allowedRoles={userOnly}><AppLayout><MyAnalytics /></AppLayout></ProtectedRoute>} />
+      
+      {/* Operations Governance Dashboard (Task 4) */}
+      <Route path="/operations-governance" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><OperationsGovernance /></AppLayout></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute allowedRoles={allRoles}><AppLayout><NotificationsCenter /></AppLayout></ProtectedRoute>} />
 
       {/* Stage 5 — Reports Center */}
       <Route path="/reports" element={<ProtectedRoute allowedRoles={allRoles}><ReportsRedirect /></ProtectedRoute>} />
@@ -87,9 +93,9 @@ function AppContent() {
       <Route path="/reports/audit-dashboard" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><ReportAuditDashboard /></AppLayout></ProtectedRoute>} />
 
       <Route path="/administration/users" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><PageContainer title="Add User Credentials"><Navigate to="/add-user" replace /></PageContainer></AppLayout></ProtectedRoute>} />
-      <Route path="/administration/users-list" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><UserDirectory /></AppLayout></ProtectedRoute>} />
-      <Route path="/administration/requests" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><VmRequestsManager /></AppLayout></ProtectedRoute>} />
-      <Route path="/administration/ownership" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><VmOwnershipConsole /></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/users-list" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><UserDirectory /></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/requests" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><VmRequestsManager /></AppLayout></ProtectedRoute>} />
+      <Route path="/administration/ownership" element={<ProtectedRoute allowedRoles={opsRoles}><AppLayout><VmOwnershipConsole /></AppLayout></ProtectedRoute>} />
       <Route path="/administration/sync-logs" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><SyncLogsCenter /></AppLayout></ProtectedRoute>} />
       <Route path="/administration/sync" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><SyncCenter /></AppLayout></ProtectedRoute>} />
       <Route path="/administration/add-vm" element={<ProtectedRoute allowedRoles={adminOnly}><AppLayout><PageContainer title="Add VM Provision"><Navigate to="/add" replace /></PageContainer></AppLayout></ProtectedRoute>} />

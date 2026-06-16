@@ -148,6 +148,11 @@ export default function MyReports() {
   const [selectedFormat, setSelectedFormat] = useState("csv");
   const [exporting, setExporting] = useState(false);
 
+  const [actionError, setActionError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+  const [modalError, setModalError] = useState("");
+
   // ── Fetch dynamic templates & saved configs ───────────────────────────────
   const fetchSavedConfigs = async (p = 1) => {
     try {
@@ -251,8 +256,9 @@ export default function MyReports() {
 
   // ── Export handler (Rule 11/13 wraps original pipeline) ─────────────────
   const handleDownload = async () => {
-    if (!selectedFormat) { alert("Please select a format."); return; }
-    if (selectedColumns.length === 0) { alert("Please select at least one column."); return; }
+    setModalError("");
+    if (!selectedFormat) { setModalError("Please select a format."); return; }
+    if (selectedColumns.length === 0) { setModalError("Please select at least one column."); return; }
     try {
       setExporting(true);
 
@@ -327,7 +333,7 @@ export default function MyReports() {
     } catch (err) {
       console.error("Export failed:", err);
       const msg = err.response?.data?.error || err.message || "Export failed. Please try again.";
-      alert(msg);
+      setModalError(msg);
     } finally {
       setExporting(false);
     }
@@ -335,6 +341,9 @@ export default function MyReports() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const openPreset = (preset) => {
+    setModalError("");
+    setActionError("");
+    setSuccessMsg("");
     setSelectedColumns(preset.columns);
     setSelectedFormat("csv");
     setActivePresetName(preset.title);
@@ -344,6 +353,9 @@ export default function MyReports() {
   };
 
   const openSavedReport = (report) => {
+    setModalError("");
+    setActionError("");
+    setSuccessMsg("");
     setSelectedColumns(report.columns);
     setSelectedFormat("csv");
     setActivePresetName(report.title);
@@ -353,9 +365,10 @@ export default function MyReports() {
   };
 
   const handleOpenSaveModal = () => {
+    setModalError("");
     // Collect columns from current popup selections
     if (selectedColumns.length === 0) {
-      alert("Configure a report first by selecting columns.");
+      setModalError("Configure a report first by selecting columns.");
       return;
     }
     setShowSaveModal(true);
@@ -363,8 +376,9 @@ export default function MyReports() {
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
+    setModalError("");
     if (!saveTitle.trim()) {
-      alert("Report title is required");
+      setModalError("Report title is required");
       return;
     }
     try {
@@ -375,7 +389,7 @@ export default function MyReports() {
         filters: {} // Standard reports filters default to empty for users
       };
       await proxmoxApi.post("/proxmox/reports/saved", payload);
-      alert("Report configuration saved successfully!");
+      setSuccessMsg("Report configuration saved successfully!");
       setShowSaveModal(false);
       setSaveTitle("");
       setSaveDescription("");
@@ -383,20 +397,29 @@ export default function MyReports() {
     } catch (err) {
       console.error("Save failed:", err);
       const msg = err.response?.data?.error || "Failed to save configuration.";
-      alert(msg);
+      setModalError(msg);
     }
   };
 
-  const handleDeleteConfig = async (id, e) => {
+  const handleDeleteConfig = (id, e) => {
     e.stopPropagation();
-    if (!window.confirm("Delete this saved configuration permanently?")) return;
-    try {
-      await proxmoxApi.delete(`/proxmox/reports/saved/${id}`);
-      fetchSavedConfigs(1);
-    } catch (err) {
-      console.error("Delete config failed:", err);
-      alert("Failed to delete configuration.");
-    }
+    setActionError("");
+    setSuccessMsg("");
+    setConfirmModal({
+      show: true,
+      title: "Delete Report Configuration",
+      message: "Are you sure you want to delete this saved configuration permanently?",
+      onConfirm: async () => {
+        try {
+          await proxmoxApi.delete(`/proxmox/reports/saved/${id}`);
+          setSuccessMsg("Report configuration deleted successfully.");
+          fetchSavedConfigs(1);
+        } catch (err) {
+          console.error("Delete config failed:", err);
+          setActionError("Failed to delete configuration.");
+        }
+      }
+    });
   };
 
   const handleToggleFavorite = async (id, e) => {
@@ -433,6 +456,20 @@ export default function MyReports() {
       title="My Reports & Analytics"
       description={`Personalized report workspace. Sourced exclusively from VMs linked to Staff Code: ${staffCode}.`}
     >
+      {/* Success/Error Banners */}
+      {successMsg && (
+        <div className="mb-6 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 text-sm text-emerald-800 dark:text-emerald-400 flex items-center justify-between shadow-sm">
+          <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg("")} className="text-emerald-800 dark:text-emerald-400 hover:opacity-85 font-bold ml-4">✕</button>
+        </div>
+      )}
+      {actionError && (
+        <div className="mb-6 rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 text-sm text-rose-800 dark:text-rose-400 flex items-center justify-between shadow-sm">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError("")} className="text-rose-800 dark:text-rose-400 hover:opacity-85 font-bold ml-4">✕</button>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm mb-4">
@@ -737,6 +774,8 @@ export default function MyReports() {
           onClose={() => setShowPopup(false)}
           onDownload={handleDownload}
           onSave={handleOpenSaveModal}
+          errorMsg={modalError}
+          setErrorMsg={setModalError}
         />
       )}
 
@@ -750,6 +789,12 @@ export default function MyReports() {
             <h3 className="font-bold text-base text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
               <Plus size={18} className="text-blue-500" /> Save Report Configuration
             </h3>
+            {modalError && (
+              <div className="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-800 flex items-center justify-between">
+                <span>{modalError}</span>
+                <button type="button" onClick={() => setModalError("")} className="text-rose-800 hover:opacity-80 font-bold ml-3">✕</button>
+              </div>
+            )}
             <form onSubmit={handleSaveConfig} className="flex flex-col gap-4">
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Report Title</label>
@@ -789,6 +834,35 @@ export default function MyReports() {
               </div>
             </form>
           </Card>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{confirmModal.title}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">{confirmModal.message}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ show: false, title: "", message: "", onConfirm: null })}
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal({ show: false, title: "", message: "", onConfirm: null });
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </PageContainer>

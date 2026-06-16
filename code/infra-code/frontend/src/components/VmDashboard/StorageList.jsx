@@ -15,7 +15,7 @@ const StorageList = ({ storages }) => {
 
             <div className = "space-y-3">
                 {storages.map((s, index) => (
-                    <div key = {index} className = "border border-slate-100 dark:border-slate-850 rounded-lg p-3 bg-slate-50 dark:bg-slate-950/30 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-950/60 transition">
+                    <div key = {index} className = "border border-slate-100 dark:border-slate-800 rounded-lg p-3 bg-slate-50 dark:bg-slate-950/30 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-950/60 transition">
                         <div className = "font-semibold text-slate-800 dark:text-slate-200 mb-1">{s.disk_image}</div>
 
                         <div className = "grid grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-400">
