@@ -13,7 +13,7 @@ export default function NotificationsCenter() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await proxmoxApi.get("/proxmox/notifications");
+      const res = await proxmoxApi.get("/notifications");
       setNotifications(res.data || []);
       setError("");
     } catch (err) {
@@ -29,7 +29,7 @@ export default function NotificationsCenter() {
 
   const handleMarkRead = async (id) => {
     try {
-      await proxmoxApi.put(`/proxmox/notifications/${id}/read`);
+      await proxmoxApi.put(`/notifications/${id}/read`);
       fetchNotifications();
     } catch (err) {
       console.error(err);
@@ -38,7 +38,7 @@ export default function NotificationsCenter() {
 
   const handleMarkAllRead = async () => {
     try {
-      await proxmoxApi.put("/proxmox/notifications/read-all");
+      await proxmoxApi.put("/notifications/read-all");
       fetchNotifications();
     } catch (err) {
       console.error(err);

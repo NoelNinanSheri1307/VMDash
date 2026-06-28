@@ -92,7 +92,7 @@ export default function NodesList() {
   const fetchNodes = async () => {
     try {
       setLoading(true);
-      const res = await proxmoxApi.get("/proxmox/nodes/");
+      const res = await proxmoxApi.get("/nodes/");
       setNodes(res.data);
       setError("");
     } catch (err) {
@@ -342,7 +342,24 @@ export default function NodesList() {
                         {node.live_status ? "online" : "offline"}
                       </Badge>
                     </td>
-                    <td className="px-5 py-4 font-mono text-xs">{node.ip || "N/A"}</td>
+                    <td className="px-5 py-4 font-mono text-xs">
+                      <div className="flex flex-col gap-1">
+                        {Array.isArray(node.ip) ? (
+                          node.ip.map(([ipVal, comment], idx) => (
+                            <div key={idx} className="relative group inline-block">
+                              <span className="cursor-help hover:text-role-primary hover:underline">{ipVal}</span>
+                              {comment && (
+                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-50 bg-slate-900 dark:bg-slate-800 text-white text-[10px] px-2.5 py-1.5 rounded-xl shadow-xl whitespace-nowrap font-sans">
+                                  {comment}
+                                </span>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          node.ip || "N/A"
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-4 font-mono text-xs">{formatUptime(node.uptime)}</td>
                     <td className="px-5 py-4 text-center font-bold text-slate-800 dark:text-slate-200">
                       {node.total_cores}

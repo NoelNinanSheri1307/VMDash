@@ -5,8 +5,10 @@ from datetime import datetime
 from proxmox.proxmox_client import get_proxmox_connection
 from sqlalchemy import func, and_, desc
 from db import SessionLocal
+from sqlalchemy import select
 from models.vm_table import Vm
 from models.node_table import Node
+from models.node_ip_table import NodeIp
 from models.cluster_table import Cluster
 from models.storage_table import Storage
 from models.user_table import EmpDetails
@@ -52,8 +54,9 @@ def get_vm_creation_date(host_ip, vmid):
 
 
 
-def fetch_vm_details_from_cluster():
-    proxmox = get_proxmox_connection()
+def fetch_vm_details_from_cluster(cluster_name):
+    proxmox = get_proxmox_connection(cluster_name)
+    
     cluster = proxmox.cluster.status.get()
     cluster_name = None
     for item in cluster:
@@ -163,7 +166,7 @@ def fetch_vm_details_from_cluster():
             
             
             for key, value in parsed_notes.items():
-                if "IP" in key and vm_details["ip"] == "":
+                if "IP" in key and len(key) < 4 and vm_details["ip"] == "":
                     vm_details["ip"] = value if value else ""
                 if "DCV" in key:
                     vm_details["dcv_hostname"] = value
@@ -199,110 +202,118 @@ def fetch_vm_details_from_cluster():
 def post_vms_data():
     session = SessionLocal()
     try:
-        vm_node_info, vm_cluster_info, vm_storage_info, vm_data = fetch_vm_details_from_cluster()
+        clusters = session.scalars(select(Cluster)).all()
+        cluster_count = 0
+        existing_vms = 0
+        non_existing_vms = 0
 
         existing_vm_uuid = list()
-        for index in range(len(vm_data)):
-            one_vm = vm_data[index]
-            existing_data = session.query(Vm).filter_by(uuid = one_vm['uuid']).first()
-            vm_node_name = vm_node_info[index]
+        for cluster in clusters:
+            vm_node_info, vm_cluster_info, vm_storage_info, vm_data = fetch_vm_details_from_cluster(cluster.cluster_name)
+
+            for index in range(len(vm_data)):
+                one_vm = vm_data[index]
+                existing_data = session.query(Vm).filter_by(uuid = one_vm['uuid']).first()
+                vm_node_name = vm_node_info[index]
 
 
-            vm_cluster_name = vm_cluster_info[index]
-            vm_storage_detils = vm_storage_info[index]
+                vm_cluster_name = vm_cluster_info[index]
+                vm_storage_detils = vm_storage_info[index]
 
-            if existing_data:
-                existing_vm_uuid.append(one_vm['uuid'])
+                if existing_data:
+                    existing_vm_uuid.append(one_vm['uuid'])
 
-                existing_data.vm_name = one_vm['vm_name']
-                existing_data.vm_id = one_vm['vm_id']
-                existing_data.vm_host_name = one_vm['vm_host_name'] if one_vm['vm_host_name'] != "" else existing_data.vm_host_name
-                existing_data.live_status = one_vm['live_status']
-                existing_data.cpus = one_vm['cpus']
-                existing_data.sockets = one_vm['sockets']
-                existing_data.max_memory = one_vm['max_memory']
-                existing_data.chipset = one_vm['chipset']
-                existing_data.max_disk = one_vm['max_disk']
-                existing_data.os = one_vm['os'] if one_vm['os'] != "" else existing_data.os
-                existing_data.mac = one_vm['mac'] if one_vm['mac'] != "" else existing_data.mac
-                existing_data.ip = one_vm['ip'] if one_vm['ip'] != "" else existing_data.ip
-                existing_data.status = one_vm['status']
-                existing_data.uptime = one_vm['uptime']
-                existing_data.gpu = one_vm['gpu']
-                existing_data.gpu_info = one_vm['gpu_info']
-                existing_data.dcv_hostname = one_vm.get('dcv_hostname', None)
-                existing_data.end_user_focal_point = one_vm.get('end_user_focal_point', None)
-                existing_data.com_focal_point = one_vm.get('com_focal_point', None)
-                existing_data.request_source = one_vm.get('request_source', None)
-                existing_data.display_type = one_vm.get('display_type', None)
-                existing_data.prometheus_status = one_vm.get('prometheus_status', None)
-                existing_data.software_installed = one_vm.get('software_installed', None)
+                    existing_data.vm_name = one_vm['vm_name']
+                    existing_data.vm_id = one_vm['vm_id']
+                    existing_data.vm_host_name = one_vm['vm_host_name'] if one_vm['vm_host_name'] != "" else existing_data.vm_host_name
+                    existing_data.live_status = one_vm['live_status']
+                    existing_data.cpus = one_vm['cpus']
+                    existing_data.sockets = one_vm['sockets']
+                    existing_data.max_memory = one_vm['max_memory']
+                    existing_data.chipset = one_vm['chipset']
+                    existing_data.max_disk = one_vm['max_disk']
+                    existing_data.os = one_vm['os'] if one_vm['os'] != "" else existing_data.os
+                    existing_data.mac = one_vm['mac'] if one_vm['mac'] != "" else existing_data.mac
+                    existing_data.ip = one_vm['ip'] if one_vm['ip'] != "" else existing_data.ip
+                    existing_data.status = one_vm['status']
+                    existing_data.uptime = one_vm['uptime']
+                    existing_data.gpu = one_vm['gpu']
+                    existing_data.gpu_info = one_vm['gpu_info']
+                    existing_data.dcv_hostname = one_vm.get('dcv_hostname', None)
+                    existing_data.end_user_focal_point = one_vm.get('end_user_focal_point', None)
+                    existing_data.com_focal_point = one_vm.get('com_focal_point', None)
+                    existing_data.request_source = one_vm.get('request_source', None)
+                    existing_data.display_type = one_vm.get('display_type', None)
+                    existing_data.prometheus_status = one_vm.get('prometheus_status', None)
+                    existing_data.software_installed = one_vm.get('software_installed', None)
 
-                # node_query = (session
-                #               .query(VmNodeRelation.node_name, VmNodeRelation.cluster_name, Node.ip)
-                #               .join(Node, (VmNodeRelation.node_name == Node.node_name) & (VmNodeRelation.cluster_name == Node.cluster_name))
-                #               .filter(VmNodeRelation.uuid == one_vm["uuid"])
-                #               .order_by(desc(VmNodeRelation.updated_at))
-                #               .first()
-                #             )
-                # host_ip = node_query.ip
-                # existing_data.created_date = get_vm_creation_date(host_ip, one_vm["vm_id"])
+                    # node_query = (session
+                    #               .query(VmNodeRelation.node_name, VmNodeRelation.cluster_name, Node.ip)
+                    #               .join(Node, (VmNodeRelation.node_name == Node.node_name) & (VmNodeRelation.cluster_name == Node.cluster_name))
+                    #               .filter(VmNodeRelation.uuid == one_vm["uuid"])
+                    #               .order_by(desc(VmNodeRelation.updated_at))
+                    #               .first()
+                    #             )
+                    # host_ip = node_query.ip
+                    # existing_data.created_date = get_vm_creation_date(host_ip, one_vm["vm_id"])
 
 
-                cluster_entry = session.query(VmClusterRelation).filter_by(uuid = one_vm['uuid'], cluster_name = vm_cluster_name).order_by(VmClusterRelation.initial_at.desc()).first()
-                if cluster_entry:
-                    cluster_entry.updated_at = datetime.now()
+                    cluster_entry = session.query(VmClusterRelation).filter_by(uuid = one_vm['uuid'], cluster_name = vm_cluster_name).order_by(VmClusterRelation.initial_at.desc()).first()
+                    if cluster_entry:
+                        cluster_entry.updated_at = datetime.now()
+                    else:
+                        existing_data.cluster_vm.append(VmClusterRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, initial_at = datetime.now(), updated_at = datetime.now()))
+
+
+                    node_entry = session.query(VmNodeRelation).filter_by(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, node_name = vm_node_name).order_by(VmNodeRelation.initial_at.desc()).first()
+                    if node_entry:
+                        node_entry.updated_at = datetime.now()
+                    else:
+                        existing_data.node_vm.append(VmNodeRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, node_name = vm_node_name, initial_at = datetime.now(), updated_at = datetime.now()))
+                    
+
+                    for item in vm_storage_detils:
+                        vm_storage_name, vm_volume_name, vm_size = item[0], item[1], item[2]
+                        storage_exists = (session.query(Storage).filter_by(storage_name = vm_storage_name, node_name = vm_node_name, cluster_name = vm_cluster_name).first())
+                        if storage_exists:
+                            storage_entry = session.query(VmStorageRelation).filter_by(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, storage_name = vm_storage_name, node_name = vm_node_name, vm_disk_image = vm_volume_name).order_by(VmStorageRelation.initial_at.desc()).first()
+                            if storage_entry:
+                                storage_entry.size = vm_size
+                                storage_entry.updated_at = datetime.now()
+                            else:
+                                existing_data.storage_vm.append(VmStorageRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, storage_name = vm_storage_name, node_name = vm_node_name, vm_disk_image = vm_volume_name, size = vm_size, initial_at = datetime.now(), updated_at = datetime.now()))
+
                 else:
-                    existing_data.cluster_vm.append(VmClusterRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, initial_at = datetime.now(), updated_at = datetime.now()))
+                    new_vm = Vm(**one_vm)
 
-
-                node_entry = session.query(VmNodeRelation).filter_by(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, node_name = vm_node_name).order_by(VmNodeRelation.initial_at.desc()).first()
-                if node_entry:
-                    node_entry.updated_at = datetime.now()
-                else:
-                    existing_data.node_vm.append(VmNodeRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, node_name = vm_node_name, initial_at = datetime.now(), updated_at = datetime.now()))
-                
-
-                for item in vm_storage_detils:
-                    vm_storage_name, vm_volume_name, vm_size = item[0], item[1], item[2]
-                    storage_exists = (session.query(Storage).filter_by(storage_name = vm_storage_name, node_name = vm_node_name, cluster_name = vm_cluster_name).first())
-                    if storage_exists:
-                        storage_entry = session.query(VmStorageRelation).filter_by(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, storage_name = vm_storage_name, node_name = vm_node_name, vm_disk_image = vm_volume_name).order_by(VmStorageRelation.initial_at.desc()).first()
-                        if storage_entry:
-                            storage_entry.size = vm_size
-                            storage_entry.updated_at = datetime.now()
-                        else:
-                            existing_data.storage_vm.append(VmStorageRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, storage_name = vm_storage_name, node_name = vm_node_name, vm_disk_image = vm_volume_name, size = vm_size, initial_at = datetime.now(), updated_at = datetime.now()))
-
-            else:
-                new_vm = Vm(**one_vm)
-
-                node_query = (session.query(Node).filter_by(node_name = vm_node_name, cluster_name = vm_cluster_name).first())
-                host_ip = node_query.ip
-                new_vm.created_date = get_vm_creation_date(host_ip, one_vm["vm_id"])
-                
-                new_vm.cluster_vm.append(VmClusterRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, initial_at = datetime.now(), updated_at = datetime.now()))
-                new_vm.node_vm.append(VmNodeRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, node_name = vm_node_name, initial_at = datetime.now(), updated_at = datetime.now()))
-                
-                for item in vm_storage_detils:
-                    vm_storage_name, vm_volume_name, vm_size = item[0], item[1], item[2]
-                    storage_exists = (session.query(Storage).filter_by(storage_name = vm_storage_name, node_name = vm_node_name, cluster_name = vm_cluster_name).first())
-                    if storage_exists:
-                        new_vm.storage_vm.append(VmStorageRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, storage_name = vm_storage_name, node_name = vm_node_name, vm_disk_image = vm_volume_name, size = vm_size, initial_at = datetime.now(), updated_at = datetime.now()))               
-                session.add(new_vm)
+                    node_query = session.query(NodeIp).filter(NodeIp.node_name == vm_node_name, NodeIp.cluster_name == vm_cluster_name, NodeIp.comments.like('%management%')).first()
+                    host_ip = node_query.ip
+                    new_vm.created_date = get_vm_creation_date(host_ip, one_vm["vm_id"])
+                    
+                    new_vm.cluster_vm.append(VmClusterRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, initial_at = datetime.now(), updated_at = datetime.now()))
+                    new_vm.node_vm.append(VmNodeRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, node_name = vm_node_name, initial_at = datetime.now(), updated_at = datetime.now()))
+                    
+                    for item in vm_storage_detils:
+                        vm_storage_name, vm_volume_name, vm_size = item[0], item[1], item[2]
+                        storage_exists = (session.query(Storage).filter_by(storage_name = vm_storage_name, node_name = vm_node_name, cluster_name = vm_cluster_name).first())
+                        if storage_exists:
+                            new_vm.storage_vm.append(VmStorageRelation(uuid = one_vm['uuid'], cluster_name = vm_cluster_name, storage_name = vm_storage_name, node_name = vm_node_name, vm_disk_image = vm_volume_name, size = vm_size, initial_at = datetime.now(), updated_at = datetime.now()))               
+                    session.add(new_vm)
+            
+            # non existing vms update
+            db_vm_uuids = session.query(Vm.uuid).all()
+            uuid_list = [uuid for (uuid,) in db_vm_uuids]
+            for uuid in uuid_list:
+                if uuid not in existing_vm_uuid:
+                    existing_data = session.query(Vm).filter_by(uuid = uuid).first()
+                    existing_data.status = "deleted"
+                    non_existing_vms += 1
+            
+            existing_vms += len(vm_data)
+            cluster_count += 1
         
-        # non existing vms update
-        db_vm_uuids = session.query(Vm.uuid).all()
-        uuid_list = [uuid for (uuid,) in db_vm_uuids]
-        non_existing_vms = 0
-        for uuid in uuid_list:
-            if uuid not in existing_vm_uuid:
-                existing_data = session.query(Vm).filter_by(uuid = uuid).first()
-                existing_data.status = "deleted"
-                non_existing_vms += 1
-
         session.commit()
-        return jsonify({"message ": f"{len(vm_data) + non_existing_vms} VMs successfully synced"})
+        return jsonify({"message ": f"{existing_vms + non_existing_vms} VMs successfully synced across {cluster_count} clusters"})
     
     finally:
         session.close()
@@ -467,6 +478,21 @@ def all_vms_json_data():
 
     vms = list()
 
+    # Query all VM-user relations and user details to construct the map
+    vm_users_map = {}
+    relations = session.query(VmUserRelation).all()
+    for rel in relations:
+        user_info = {
+            "staff_code": rel.user.staff_code,
+            "name": rel.user.name,
+            "division": rel.user.division,
+            "groupname": rel.user.groupname,
+            "entity": rel.user.entity
+        }
+        if rel.uuid not in vm_users_map:
+            vm_users_map[rel.uuid] = []
+        vm_users_map[rel.uuid].append(user_info)
+
     for vm in results:
         vms.append({
             "vm_id": vm.vm_id,
@@ -482,8 +508,9 @@ def all_vms_json_data():
             "vm_max_mem": vm.max_memory,
             "vm_max_disk": vm.max_disk,
             "vm_gpu": vm.gpu,
-            "vm_created_date": vm.created_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "Vm_request_source":vm.request_source,
+            "vm_created_date": vm.created_date.strftime("%Y-%m-%d %H:%M:%S") if vm.created_date else None,
+            "Vm_request_source": vm.request_source,
+            "users": vm_users_map.get(vm.uuid, [])
         })
     
     session.close()
@@ -653,19 +680,36 @@ def vms_data():
             temp['vm_id'] = vm.vm_id
             temp['vm_host_name'] = vm.vm_host_name
             temp['cpus'] = vm.cpus
+            temp['cores'] = vm.cpus
             temp['sockets'] = vm.sockets
             temp['max_memory'] = vm.max_memory
+            temp['ram'] = vm.max_memory
             temp['chipset'] = vm.chipset
             temp['max_disk'] = vm.max_disk
+            temp['disk_size'] = vm.max_disk
             temp['os'] = vm.os
+            temp['os_type'] = vm.os
             temp['mac'] = vm.mac
+            temp['mac_address'] = vm.mac
             temp['ip'] = vm.ip
+            temp['ip_address'] = vm.ip
             temp['status'] = vm.status
             temp['uptime'] = vm.uptime
             temp['live_status'] = vm.live_status
             temp['gpu'] = vm.gpu
             temp['gpu_info'] = vm.gpu_info
-            temp['created_date'] = vm.created_date
+            temp['created_date'] = vm.created_date.strftime("%Y-%m-%d %H:%M:%S") if vm.created_date else None
+
+            temp['users'] = [
+                {
+                    "staff_code": u.staff_code,
+                    "name": u.name,
+                    "division": u.division,
+                    "groupname": u.groupname,
+                    "entity": u.entity
+                }
+                for u in vm.user
+            ]
 
             vms_info.append(temp)
         

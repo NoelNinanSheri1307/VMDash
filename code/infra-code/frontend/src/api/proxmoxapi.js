@@ -2,6 +2,7 @@ import axios from "axios";
 
 const proxmoxApi = axios.create({
     baseURL: process.env.REACT_APP_PROXMOX_URL,
+    timeout: 300000,
     withCredentials: true
 });
 

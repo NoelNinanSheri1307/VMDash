@@ -13,10 +13,10 @@ class Node(Base):
     total_cores = Column(Integer, nullable = False)
     hypervisor = Column(String(40))
     uptime = Column(BIGINT)
-    ip = Column(String(15), nullable = False)
     live_status = Column(Boolean, nullable = False)
 
 
+    ips = relationship("NodeIp", back_populates = "node")   #Column(String(15), nullable = False)
     cluster = relationship("Cluster", back_populates = "node")
     storage = relationship("Storage", back_populates = "node", cascade = "all, delete-orphan")
 

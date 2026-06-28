@@ -19,7 +19,7 @@ export default function SyncLogsCenter() {
   const fetchLogs = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     try {
-      const response = await proxmoxApi.get("/proxmox/sync-logs");
+      const response = await proxmoxApi.get("/sync-logs");
       setLogs(response.data.logs || []);
       if (response.data.stats) {
         setStats(response.data.stats);

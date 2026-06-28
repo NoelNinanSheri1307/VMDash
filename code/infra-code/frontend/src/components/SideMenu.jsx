@@ -228,7 +228,7 @@ const SideMenu = () => {
         setSyncing(true);
         try {
           const post_urls = [
-            "/proxmox/cluster/sync",
+            // "/proxmox/cluster/sync",    removed because cluster entry is now manual. there is nothing to sync now for a cluster
             "/proxmox/nodes/sync",
             "/proxmox/storage/sync",
             "/proxmox/vms/sync",
@@ -268,7 +268,6 @@ const SideMenu = () => {
       localStorage.clear();
       sessionStorage.clear();
       navigate("/login", { replace: true });
-      window.location.replace("/login");
     }
   };
 

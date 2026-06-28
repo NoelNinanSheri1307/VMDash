@@ -1,12 +1,22 @@
 import time
 from flask import Blueprint, jsonify, request
 from utils.proxmox_api import ProxmoxAPI
+from proxmoxer import ProxmoxAPI
 from routes import config
 from proxmox.proxmox_client import get_proxmox_connection
 
 stall_bp = Blueprint("stall", __name__)
 
-pve = get_proxmox_connection()
+# pve = get_proxmox_connection()
+
+pve = ProxmoxAPI(
+        "10.41.10.173",
+        user = "proxmoxer@pve",
+        token_name = "service",
+        token_value = "6cde54cf-7ddd-4c13-86fb-eaa5b166d63f",
+        verify_ssl = False,
+        timeout = 30
+    )
 
 TTL = 60
 

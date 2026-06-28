@@ -12,6 +12,7 @@ from models.relation_tables import VmClusterRelation, VmNodeRelation, VmStorageR
 from models.report_models import SavedReport, ReportFavorite, ReportTemplate, ReportAuditLog
 from models.governance_models import VmRequest, Notification, Alert
 from models.sync_log_table import SyncLog
+from models.node_ip_table import NodeIp
 
 from dotenv import load_dotenv
 

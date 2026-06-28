@@ -11,25 +11,25 @@ def get_vms():
     session = SessionLocal()
     vms = session.query(Vm).all()
     result = []
-    for vm in vms:
-        result.append({
-            "vm_name": vm.vm_name,
-            "host_name": vm.host_name,
-            "environment": vm.environment,
-            "cluster": vm.cluster,
-            "ram": vm.ram,
-            "cores": vm.cores,
-            "ip_address": vm.ip,
-            "mac_address": vm.mac,
-            "os_type": vm.os,
-            "disk_size": vm.disk_size,
-            "source": vm.source,
-            "request_source": getattr(vm, "request_source", None),
-            "time_created": vm.time_created,
-            "gpu": vm.gpu,
-            "users": [{"staff_code": u.staff_code, "name": u.name, "center": u.center, "entity": u.entity, "groupname": u.groupname, "division": u.division, "section": u.section} 
-                        for u in vm.users]
-        })
+    # for vm in vms:
+    #     result.append({
+    #         "vm_name": vm.vm_name,
+    #         "host_name": vm.host_name,
+    #         "environment": vm.environment,
+    #         "cluster": vm.cluster,
+    #         "ram": vm.ram,
+    #         "cores": vm.cores,
+    #         "ip_address": vm.ip,
+    #         "mac_address": vm.mac,
+    #         "os_type": vm.os,
+    #         "disk_size": vm.disk_size,
+    #         "source": vm.source,
+    #         "request_source": getattr(vm, "request_source", None),
+    #         "time_created": vm.time_created,
+    #         "gpu": vm.gpu,
+    #         "users": [{"staff_code": u.staff_code, "name": u.name, "center": u.center, "entity": u.entity, "groupname": u.groupname, "division": u.division, "section": u.section} 
+    #                     for u in vm.users]
+    #     })
     session.close()
     return jsonify(result)
 

@@ -48,7 +48,7 @@ const AppLayout = ({ children }) => {
 
   const fetchNotifs = async () => {
     try {
-      const res = await proxmoxApi.get("/proxmox/notifications");
+      const res = await proxmoxApi.get("/notifications");
       setNotifications(res.data || []);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -67,7 +67,7 @@ const AppLayout = ({ children }) => {
 
   const handleMarkAllRead = async () => {
     try {
-      await proxmoxApi.put("/proxmox/notifications/read-all");
+      await proxmoxApi.put("/notifications/read-all");
       fetchNotifs();
     } catch (err) {
       console.error(err);
@@ -100,7 +100,7 @@ const AppLayout = ({ children }) => {
     } finally {
       localStorage.clear();
       sessionStorage.clear();
-      window.location.replace("/login");
+      navigate("/login", { replace: true });
     }
   };
 

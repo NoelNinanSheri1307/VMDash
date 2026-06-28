@@ -6,9 +6,7 @@ from sessions.config import set_session_config
 app = Flask(__name__)
 
 set_session_config(app)
-CORS(app, supports_credentials=True)
-# CORS(app, supports_credentials = True, origins = ["http://localhost:3000"], methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-    #  allow_headers = ["Content-Type", "authorization"])
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 register_routes(app)
 
 if __name__ == '__main__':

@@ -140,26 +140,27 @@ const VmDashboard = () => {
     const fetchVmsData = async () => {
         try {
             const [proxmoxRes, rawRes, webVmsRes] = await Promise.all([
-                proxmoxApi.get("/proxmox/vms/vmData"),
-                proxmoxApi.get("/proxmox/vms/"),
-                webApi.get("/vms")
+                proxmoxApi.get("/vms/vmData"),
+                proxmoxApi.get("/vms/"),
+                // webApi.get("/vms")
             ]);
 
             let proxmoxVms = proxmoxRes.data;
-            let webVmsData = webVmsRes.data;
+            // let webVmsData = webVmsRes.data;
             let rawVmsData = rawRes.data;
 
             // Audit duplicate names validation
-            const validation = checkDuplicateNames(proxmoxVms, webVmsData);
-            if (validation.hasDuplicate) {
-                setValidationError(`Dataset Invalidation: Multiple VM instances named "${validation.duplicateName}" detected. Inventory console is suspended.`);
-                setLoading(false);
-                return;
-            }
+            // const validation = checkDuplicateNames(proxmoxVms);
+            // if (validation.hasDuplicate) {
+            //     setValidationError(`Dataset Invalidation: Multiple VM instances named "${validation.duplicateName}" detected. Inventory console is suspended.`);
+            //     setLoading(false);
+            //     return;
+            // }
 
             // Role visibility constraints
             if (role === "user") {
-                const userRegisteredVms = webVmsData.filter(vm => 
+                const userRegisteredVms = 
+                proxmoxVms.filter(vm => 
                     vm.users && vm.users.some(u => u.staff_code === staffCode)
                 );
                 const allowedNames = new Set(userRegisteredVms.map(vm => vm.vm_name?.toLowerCase().trim()));
@@ -179,7 +180,7 @@ const VmDashboard = () => {
 
             setVms(proxmoxVms);
             setRawVms(rawVmsData);
-            setWebVms(webVmsData);
+            // setWebVms(webVmsData);
             setValidationError(null);
         } catch (err) {
             console.error("Failed to load operations center data", err);
@@ -233,13 +234,13 @@ const VmDashboard = () => {
     // O(1) Database VM -> Users mappings
     const webVmsMap = useMemo(() => {
         const map = {};
-        webVms.forEach(db => {
+        rawVms.forEach(db => {
             if (db.vm_name) {
                 map[db.vm_name.toLowerCase().trim()] = db.users || [];
             }
         });
         return map;
-    }, [webVms]);
+    }, [rawVms]);
 
     // Merging uptime specs & owners onto Proxmox VM records
     const processedVms = useMemo(() => {
@@ -1536,7 +1537,7 @@ const VmDashboard = () => {
                             }))
                         };
 
-                        proxmoxApi.post(`/proxmox/vms/${selectedVm.vm_uuid}/addUsers`, payload)
+                        proxmoxApi.post(`/vms/${selectedVm.vm_uuid}/addUsers`, payload)
                             .then(() => {
                                 notifyPostMade();
                                 showToast("success", "Users added successfully");

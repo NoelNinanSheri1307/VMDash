@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from proxmox.proxmox_client import get_proxmox_connection
 from db import SessionLocal
 from models.cluster_table import Cluster
@@ -51,6 +51,29 @@ def post_cluster_data():
         session.close()
 
 
+@cluster_bp.route('/add', methods = ['POST'])
+def add_cluster():
+    data = request.json
+
+    input_cluster_name = data.get("name")
+    input_cluster_ip = data.get("ip")
+    input_cluster_token = data.get("token")
+    
+    session = SessionLocal()
+
+    existing_data = session.query(Cluster).filter_by(cluster_name = input_cluster_name).all()
+    if existing_data:
+        session.close()
+        return jsonify(f"Cluster with name {input_cluster_name} already exists"), 500
+    
+    new_cluster = Cluster(cluster_name = input_cluster_name, cluster_ip = input_cluster_ip, proxmox_token = input_cluster_token)
+    session.add(new_cluster)
+
+    session.commit()
+    session.close()
+    return jsonify(f"Successfully added cluster {input_cluster_name}")
+
+
 
 @cluster_bp.route('/', methods = ['GET'])
 def proxmox_cluster_info():
@@ -72,6 +95,25 @@ def proxmox_cluster_info():
     
     except Exception as e:
         return jsonify({"error ": str(e)}), 500
+
+
+@cluster_bp.route('/<cluster_name>/delete', methods = ['DELETE'])
+def delete_cluster(cluster_name):
+    session = SessionLocal()
+    try:
+        cluster = session.query(Cluster).filter_by(cluster_name = cluster_name).first()
+        if not cluster:
+            session.close()
+            return jsonify({"error": f"Cluster with name {cluster_name} not found"}), 404
+        
+        session.delete(cluster)
+        session.commit()
+        return jsonify({"message": f"Successfully deleted cluster {cluster_name}"}), 200
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
 
 
     # proxmox = get_proxmox_connection()

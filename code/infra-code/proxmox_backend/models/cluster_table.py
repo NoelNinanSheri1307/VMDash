@@ -7,7 +7,8 @@ class Cluster(Base):
     __tablename__ = "cluster"
 
     cluster_name = Column(String(15), primary_key = True)
-    proxmox_token = Column(String(50))
+    cluster_ip = Column(String(15), nullable = False)
+    proxmox_token = Column(String(150), nullable = False)
     # live_status = Column(Boolean, nullable = False)
 
     node = relationship("Node", back_populates = "cluster", cascade = "all, delete-orphan")

@@ -29,7 +29,7 @@ const formatGB = (gb) => {
     return `${val.toFixed(1)} GB`;
 };
 
-const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canManageUsers }) => {
+const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canManageUsers, isSelected, onSelectToggle, ownerCount }) => {
     const [expanded, setExpanded] = useState(false);
     const [details, setDetails] = useState(null);
     // const [loading, setLoading] = useState(false);
@@ -45,7 +45,9 @@ const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canMan
         }
     };
 
-    const toggleExpand = () => {
+    const toggleExpand = (e) => {
+        // Prevent expanding when clicking selection checkboxes or actions
+        if (e.target.type === "checkbox" || e.target.closest("button")) return;
         setExpanded(!expanded);
         fetchDetails();
     }
@@ -77,21 +79,46 @@ const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canMan
         }
     }, [globalExpand]);
 
-    // useEffect(() => {
-    //     if (!expanded) return;
-    //     if (details) return;
-
-    //     fetchDetails();
-    // }, [expanded]);
-
 
     return (
         <>
             {/*-----------MAIN ROW-------------*/}
             <tr onClick = {toggleExpand} className = "cursor-pointer transition duration-150 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-300">
+                {/* 1. Bulk Selection Checkbox */}
+                <td className="p-3 text-center border-b border-slate-100 dark:border-slate-800/80">
+                    <input 
+                        type="checkbox" 
+                        checked={isSelected} 
+                        onChange={(e) => onSelectToggle(vm.vm_uuid, e.target.checked)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded text-role-primary focus:ring-role-primary border-slate-300 dark:border-slate-700 cursor-pointer"
+                    />
+                </td>
+
+                {/* 2. Details Arrow */}
+                <td className="p-3 text-center border-b border-slate-100 dark:border-slate-800/80">
+                    <span className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-300 transition text-[10px]">
+                        {expanded ? "▼" : "▶"}
+                    </span>
+                </td>
+
+                {/* 3. Sl. No. */}
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-medium text-slate-500 dark:text-slate-500 text-center">{serialNumber}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono text-slate-800 dark:text-slate-200">{vm.vm_id}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-semibold text-slate-950 dark:text-slate-50 relative group">
+
+                {/* 4. Status */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left">
+                    <span className = {`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
+                        vm.status === "running" 
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" 
+                          : vm.status === "stopped" 
+                            ? "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700/50" 
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                    }`}
+                    >{vm.status}</span>
+                </td>
+
+                {/* 5. VM Name */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-semibold text-slate-950 dark:text-slate-55 relative group">
                     <span className="hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-150">{vm.vm_name}</span>
                     <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 hidden group-hover:block w-64 p-4 rounded-xl bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-150 border border-slate-200 dark:border-slate-800 shadow-xl z-[999] pointer-events-none transition-all duration-200 animate-slide-in">
                         <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 border-b border-slate-100 dark:border-slate-800 pb-1 flex items-center justify-between">
@@ -122,29 +149,40 @@ const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canMan
                         </div>
                     </div>
                 </td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80">{vm.cluster_name}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80">{vm.node_name}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono">{vm.vm_ip}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono text-xs">{vm.vm_mac}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-center">{vm.vm_cpu}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-center">{vm.vm_max_mem}</td>
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-center">{vm.vm_max_disk}</td>
 
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-center capitalize">
+                {/* 6. VM ID */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono text-slate-800 dark:text-slate-200">{vm.vm_id}</td>
+
+                {/* 7. Cluster */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80">{vm.cluster_name}</td>
+
+                {/* 8. Node */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80">{vm.node_name}</td>
+
+                {/* 9. CPUs */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left">{vm.vm_cpu}</td>
+
+                {/* 10. Memory */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left">{formatGB(vm.vm_max_mem)}</td>
+
+                {/* 11. Storage */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left">{formatGB(vm.vm_max_disk)}</td>
+
+                {/* 12. IP Address */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 font-mono text-left">{vm.vm_ip || "—"}</td>
+
+                {/* 13. OS */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left">{vm.os || "Linux"}</td>
+
+                {/* 14. GPU */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left capitalize">
                     {vm.vm_gpu ? "gpu" : "no gpu"}
                 </td>
 
-                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-center">
-                    <span className = {`px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border ${
-                        vm.status === "running" 
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.2)] dark:shadow-[0_0_12px_rgba(16,185,129,0.4)]" 
-                          : vm.status === "stopped" 
-                            ? "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700/50" 
-                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.2)] dark:shadow-[0_0_12px_rgba(244,63,94,0.4)]"
-                    }`}
-                    >{vm.status}</span>
-                </td>
+                {/* 15. Owner Count */}
+                <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-center">{ownerCount}</td>
 
+                {/* 16. Actions */}
                 <td className = "p-3 border-b border-slate-100 dark:border-slate-800/80 text-left" onClick={(e) => e.stopPropagation()}>
                     <div className = "flex items-center gap-3">
                         <div className = "relative group inline-block">
@@ -192,7 +230,7 @@ const VmRow = ({ vm, serialNumber, onAddUser, onRemoveUser, globalExpand, canMan
             {/*-----------EXPANDED ROW----------*/}
             {expanded && (
                 <tr>
-                    <td colSpan = "13" className = "p-5 bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800">
+                    <td colSpan = "16" className = "p-5 bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800">">
                         {/* {loading && (
                             <div className = "text-gray-500 text-sm">Loading details...</div>
                         )} */}

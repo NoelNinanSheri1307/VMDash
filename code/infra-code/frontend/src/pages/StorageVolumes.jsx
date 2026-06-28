@@ -101,13 +101,13 @@ export default function StorageVolumes() {
       setLoading(true);
       
       // Fetch storage pools — primary request
-      const storageRes = await proxmoxApi.get("/proxmox/storage/");
+      const storageRes = await proxmoxApi.get("/storage/");
       setStorages(storageRes.data || []);
       setError("");
 
       // Fetch VM storage allocation via Report API (best-effort — non-blocking)
       try {
-        const reportRes = await proxmoxApi.post("/proxmox/report", {
+        const reportRes = await proxmoxApi.post("/report", {
           format: "json",
           columns: ["vm_uuid", "vm_name", "cluster_name", "node_name", "storages"]
         });
@@ -129,7 +129,7 @@ export default function StorageVolumes() {
 
         setAllocationMap(alloc);
       } catch (reportErr) {
-        console.warn("VM report API unavailable – allocation data will not be shown:", reportErr);
+        console.warn("VM report API unavailable - allocation data will not be shown:", reportErr);
         // Allocation map stays empty — storage pools still render without utilization bars
       }
 

@@ -13,7 +13,7 @@ invoke==2.2.0
 itsdangerous==2.2.0
 Jinja2==3.1.4
 MarkupSafe==3.0.2
-paramiko @ file:///c:/Users/VICTUS/VMDash/code/infra-code/proxmox_backend/paramiko-4.0.0-py3-none-any.whl
+paramiko==4.0.0
 proxmoxer==2.1.0
 pycparser==2.22
 PyMySQL==1.1.1

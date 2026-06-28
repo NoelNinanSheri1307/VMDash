@@ -1,13 +1,15 @@
 from flask import Blueprint, jsonify
 from proxmox.proxmox_client import get_proxmox_connection
 from db import SessionLocal
+from sqlalchemy import select
+from models.cluster_table import Cluster
 from models.storage_table import Storage
 
 storage_bp = Blueprint('storage', __name__, url_prefix = '/proxmox/storage')
 
 
-def fetch_storage_details_from_cluster():
-    proxmox = get_proxmox_connection()
+def fetch_storage_details_from_cluster(cluster_name):
+    proxmox = get_proxmox_connection(cluster_name)
     cluster = proxmox.cluster.status.get()
     cluster_name = None
 
@@ -54,23 +56,31 @@ def fetch_storage_details_from_cluster():
 def post_storage_data():
     session = SessionLocal()
     try:
-        storage_data = fetch_storage_details_from_cluster()
+        clusters = session.scalars(select(Cluster)).all()
+        cluster_count = 0
+        storage_count = 0
 
-        for storage in storage_data:
-            existing_data = session.query(Storage).filter_by(cluster_name = storage['cluster_name'], storage_name = storage['storage_name'], node_name = storage['node_name']).first()
-            if existing_data:
-                existing_data.total_size = storage['total_size']
-                existing_data.storage_type = storage['storage_type']
-                existing_data.content = storage['content']
-                existing_data.storage_server_ip = storage['storage_server_ip']
-                existing_data.storage_datastore = storage['storage_datastore']
-                existing_data.live_status = storage['live_status']
-            else:
-                new_node = Storage(**storage)
-                session.add(new_node)
+        for cluster in clusters:
+            storage_data = fetch_storage_details_from_cluster(cluster.cluster_name)
+
+            for storage in storage_data:
+                existing_data = session.query(Storage).filter_by(cluster_name = storage['cluster_name'], storage_name = storage['storage_name'], node_name = storage['node_name']).first()
+                if existing_data:
+                    existing_data.total_size = storage['total_size']
+                    existing_data.storage_type = storage['storage_type']
+                    existing_data.content = storage['content']
+                    existing_data.storage_server_ip = storage['storage_server_ip']
+                    existing_data.storage_datastore = storage['storage_datastore']
+                    existing_data.live_status = storage['live_status']
+                else:
+                    new_node = Storage(**storage)
+                    session.add(new_node)
+        
+            cluster_count += 1
+            storage_count += len(storage_data)
         
         session.commit()
-        return jsonify({"message ": f"{len(storage_data)} storages successfully synced"})
+        return jsonify({"message ": f"{storage_count} storages successfully synced across {cluster_count} clusters"})
     
     except Exception as e:
         session.rollback()

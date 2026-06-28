@@ -1,13 +1,17 @@
 from flask import Blueprint, jsonify
 from proxmox.proxmox_client import get_proxmox_connection
 from db import SessionLocal
+from sqlalchemy import select
+from models.cluster_table import Cluster
 from models.node_table import Node
+from models.node_ip_table import NodeIp
 
 nodes_bp = Blueprint('nodes', __name__, url_prefix = '/proxmox/nodes')
 
 
-def fetch_node_details_from_cluster():
-    proxmox = get_proxmox_connection()
+def fetch_node_details_from_cluster(cluster_name):
+    proxmox = get_proxmox_connection(cluster_name)
+
     cluster = proxmox.cluster.status.get()
     cluster_name = None
 
@@ -17,6 +21,7 @@ def fetch_node_details_from_cluster():
             break
     
     node_info = list()
+    ips = dict()
     for node in proxmox.nodes.get():
         node_name = node['node']
 
@@ -35,18 +40,18 @@ def fetch_node_details_from_cluster():
         node_details['uptime'] = node_info_field.get('uptime')
 
         network = proxmox.nodes(node_name).network.get()
-
-        node_details['ip'] = ""
         
         for interfaces in network:
             address = interfaces.get("address")
+            network_comment = interfaces.get("comments")
             if address and address.startswith("10."):
-                node_details['ip'] = address
-                break
+                existing_ips = ips.get(f'{node_name}+{cluster_name}', [])
+                existing_ips.append({"ip": address, "comment": network_comment})
+                ips[f'{node_name}+{cluster_name}'] = existing_ips
         
         node_info.append(node_details)
     
-    return node_info
+    return node_info, ips
 
 
 
@@ -54,24 +59,37 @@ def fetch_node_details_from_cluster():
 def post_nodes_data():
     session = SessionLocal()
     try:
-        node_data = fetch_node_details_from_cluster()
+        clusters = session.scalars(select(Cluster)).all()
+        cluster_count = 0
+        node_count = 0
 
-        for one_node in node_data:
-            existing_data = session.query(Node).filter_by(cluster_name = one_node['cluster_name'], node_name = one_node['node_name']).first()
-            if existing_data:
-                existing_data.model = one_node['model']
-                existing_data.total_mem = one_node['total_mem']
-                existing_data.total_cores = one_node['total_cores']
-                existing_data.hypervisor = one_node['hypervisor']
-                existing_data.uptime = one_node['uptime']
-                existing_data.ip = one_node['ip']
-                existing_data.live_status = one_node['live_status']
-            else:
-                new_node = Node(**one_node)
-                session.add(new_node)
+        for cluster in clusters:
+            node_data, ip_list = fetch_node_details_from_cluster(cluster.cluster_name)
+
+            for one_node in node_data:
+                existing_data = session.query(Node).filter_by(cluster_name = one_node['cluster_name'], node_name = one_node['node_name']).first()
+                if existing_data:
+                    existing_data.model = one_node['model']
+                    existing_data.total_mem = one_node['total_mem']
+                    existing_data.total_cores = one_node['total_cores']
+                    existing_data.hypervisor = one_node['hypervisor']
+                    existing_data.uptime = one_node['uptime']
+                    # existing_data.ip = one_node['ip']        # do not update the ips in the child table
+                    existing_data.live_status = one_node['live_status']
+                else:
+                    new_node = Node(**one_node)
+
+                    node_ips = ip_list[f"{one_node['node_name']}+{one_node['cluster_name']}"]
+                    for ip_details in node_ips:
+                        new_node.ips.append(NodeIp(cluster_name = one_node['cluster_name'], node_name = one_node['node_name'], ip = ip_details['ip'], comments = ip_details['comment']))
+                    
+                    session.add(new_node)
+            
+            cluster_count += 1
+            node_count += len(node_data)
         
         session.commit()
-        return jsonify({"message ": f"{len(node_data)} nodes successfully synced"})
+        return jsonify({"message ": f"{node_count} nodes successfully synced across {cluster_count} clusters"})
     
     except Exception as e:
         session.rollback()
@@ -99,8 +117,14 @@ def nodes_info():
             temp['total_cores'] = node.total_cores
             temp['hypervisor'] = node.hypervisor
             temp['uptime'] = node.uptime
-            temp['ip'] = node.ip
             temp['live_status'] = node.live_status
+
+            temp['ip'] = list()
+
+            node_ip_entries = session.query(NodeIp).filter(NodeIp.node_name == node.node_name, NodeIp.cluster_name == node.cluster_name).all()
+
+            for entry in node_ip_entries:
+                temp['ip'].append([entry.ip, entry.comments])
 
             node_info.append(temp)
         

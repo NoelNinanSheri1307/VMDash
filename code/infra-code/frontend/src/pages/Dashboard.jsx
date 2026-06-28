@@ -38,38 +38,38 @@ const formatGB = (gb) => {
 };
 
 const ALL_REPORT_FIELDS = [
-  { key: "vm_name",              label: "VM Name" },
-  { key: "vm_uuid",              label: "UUID" },
-  { key: "os",                   label: "OS" },
-  { key: "status",               label: "Status" },
-  { key: "live_status",          label: "Live Status" },
-  { key: "uptime",               label: "Uptime" },
-  { key: "cpus",                 label: "CPUs" },
-  { key: "max_memory",           label: "RAM (GB)" },
-  { key: "max_disk",             label: "Disk (GB)" },
-  { key: "cluster_name",         label: "Cluster" },
-  { key: "node_name",            label: "Node" },
-  { key: "ip",                   label: "IP Address" },
-  { key: "mac",                  label: "MAC Address" },
-  { key: "gpu",                  label: "GPU" },
-  { key: "gpu_info",             label: "GPU Details" },
-  { key: "created_date",         label: "Created Date" },
-  { key: "users_assigned",       label: "Users Assigned" },
-  { key: "com_focal_point",      label: "COM Focal Point" },
+  { key: "vm_name", label: "VM Name" },
+  { key: "vm_uuid", label: "UUID" },
+  { key: "os", label: "OS" },
+  { key: "status", label: "Status" },
+  { key: "live_status", label: "Live Status" },
+  { key: "uptime", label: "Uptime" },
+  { key: "cpus", label: "CPUs" },
+  { key: "max_memory", label: "RAM (GB)" },
+  { key: "max_disk", label: "Disk (GB)" },
+  { key: "cluster_name", label: "Cluster" },
+  { key: "node_name", label: "Node" },
+  { key: "ip", label: "IP Address" },
+  { key: "mac", label: "MAC Address" },
+  { key: "gpu", label: "GPU" },
+  { key: "gpu_info", label: "GPU Details" },
+  { key: "created_date", label: "Created Date" },
+  { key: "users_assigned", label: "Users Assigned" },
+  { key: "com_focal_point", label: "COM Focal Point" },
   { key: "end_user_focal_point", label: "End User Focal Point" },
-  { key: "prometheus_status",    label: "Prometheus Status" },
-  { key: "software_installed",   label: "Software Installed" },
-  { key: "request_source",       label: "Request Source" },
-  { key: "storages",             label: "Storage Pools" },
+  { key: "prometheus_status", label: "Prometheus Status" },
+  { key: "software_installed", label: "Software Installed" },
+  { key: "request_source", label: "Request Source" },
+  { key: "storages", label: "Storage Pools" },
 ];
 
 // Plotly Theme helper
 const getPlotlyTheme = (role, theme) => {
   const isDark = theme === "dark";
-  
+
   let primaryColor = "#3b82f6"; // Admin
   let colors = ["#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe"];
-  
+
   if (role === "manager") {
     primaryColor = "#10b981"; // Manager Green
     colors = ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#d1fae5"];
@@ -114,7 +114,7 @@ const getPlotlyTheme = (role, theme) => {
 
 export default function Dashboard() {
   const { currentTheme } = useTheme();
-  
+
   // Resolve Role
   const user = JSON.parse(localStorage.getItem("user")) || { staff_code: "N/A", role: "view_only" };
   let role = user.role;
@@ -162,15 +162,15 @@ export default function Dashboard() {
   // Sync activeFilters to URL search query and localStorage
   useEffect(() => {
     if (role === "user") return;
-    
+
     const isEmpty = Object.values(activeFilters).every(arr => arr.length === 0);
-    
+
     if (isEmpty) {
       localStorage.removeItem("vmdash_dashboard_filters");
       window.history.replaceState(null, "", window.location.pathname);
     } else {
       localStorage.setItem("vmdash_dashboard_filters", JSON.stringify(activeFilters));
-      
+
       const params = new URLSearchParams();
       Object.entries(activeFilters).forEach(([key, values]) => {
         values.forEach(v => params.append(key, v));
@@ -182,7 +182,7 @@ export default function Dashboard() {
   // Load initial filters on mount from URL parameters, fallback to localStorage
   useEffect(() => {
     if (role === "user") return;
-    
+
     const params = new URLSearchParams(window.location.search);
     const initial = {
       os: params.getAll("os"),
@@ -193,9 +193,9 @@ export default function Dashboard() {
       division: params.getAll("division"),
       groupname: params.getAll("groupname")
     };
-    
+
     const hasUrlParams = Object.values(initial).some(arr => arr.length > 0);
-    
+
     if (hasUrlParams) {
       setActiveFilters(initial);
     } else {
@@ -239,10 +239,10 @@ export default function Dashboard() {
     try {
       setAdminLoading(true);
       const [vmsRes, nodesRes, clustersRes, storageRes, webVmsRes] = await Promise.all([
-        proxmoxApi.get("/proxmox/vms/vmData"),
-        proxmoxApi.get("/proxmox/nodes/"),
-        proxmoxApi.get("/proxmox/cluster/"),
-        proxmoxApi.get("/proxmox/storage/"),
+        proxmoxApi.get("/vms/vmData"),
+        proxmoxApi.get("/nodes/"),
+        proxmoxApi.get("/cluster/"),
+        proxmoxApi.get("/storage/"),
         webApi.get("/vms")
       ]);
 
@@ -251,7 +251,7 @@ export default function Dashboard() {
         nodes: nodesRes.data,
         clusters: clustersRes.data,
         storage: storageRes.data,
-        webVms: webVmsRes.data
+        // webVms: webVmsRes.data
       });
       setError("");
     } catch (err) {
@@ -311,17 +311,17 @@ export default function Dashboard() {
 
       if (activeFilters.entity.length > 0) {
         const hasMatch = v.users.some(u => activeFilters.entity.includes((u.entity || "Unassigned").toLowerCase())) ||
-                         (activeFilters.entity.includes("unassigned") && !v.isAssigned);
+          (activeFilters.entity.includes("unassigned") && !v.isAssigned);
         if (!hasMatch) return false;
       }
       if (activeFilters.division.length > 0) {
         const hasMatch = v.users.some(u => activeFilters.division.includes((u.division || "Unassigned").toLowerCase())) ||
-                         (activeFilters.division.includes("unassigned") && !v.isAssigned);
+          (activeFilters.division.includes("unassigned") && !v.isAssigned);
         if (!hasMatch) return false;
       }
       if (activeFilters.groupname.length > 0) {
         const hasMatch = v.users.some(u => activeFilters.groupname.includes((u.groupname || "Unassigned").toLowerCase())) ||
-                         (activeFilters.groupname.includes("unassigned") && !v.isAssigned);
+          (activeFilters.groupname.includes("unassigned") && !v.isAssigned);
         if (!hasMatch) return false;
       }
       return true;
@@ -404,8 +404,8 @@ export default function Dashboard() {
     const val = String(value).toLowerCase().trim();
     setActiveFilters(prev => {
       const current = prev[category] || [];
-      const updated = current.includes(val) 
-        ? current.filter(x => x !== val) 
+      const updated = current.includes(val)
+        ? current.filter(x => x !== val)
         : [...current, val];
       return { ...prev, [category]: updated };
     });
@@ -842,17 +842,17 @@ export default function Dashboard() {
         const rawText = res.data instanceof Blob
           ? await res.data.text()
           : typeof res.data === "string"
-          ? res.data
-          : JSON.stringify(res.data);
+            ? res.data
+            : JSON.stringify(res.data);
         const win = window.open("", "_blank");
         if (win) {
           win.document.write(rawText);
           win.document.close();
         } else {
           const blob = new Blob([rawText], { type: "text/html" });
-          const url  = URL.createObjectURL(blob);
-          const a    = document.createElement("a");
-          a.href     = url;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
           a.download = "dashboard-export.html";
           document.body.appendChild(a);
           a.click();
@@ -861,22 +861,22 @@ export default function Dashboard() {
         }
       } else if (isJson) {
         const jsonStr = JSON.stringify(res.data, null, 2);
-        const blob    = new Blob([jsonStr], { type: "application/json" });
-        const url     = URL.createObjectURL(blob);
-        const a       = document.createElement("a");
-        a.href        = url;
-        a.download    = "dashboard-export.json";
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dashboard-export.json";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
         const mimeTypes = { csv: "text/csv", xls: "application/vnd.ms-excel" };
-        const mimeType  = mimeTypes[selectedFormat] || "application/octet-stream";
+        const mimeType = mimeTypes[selectedFormat] || "application/octet-stream";
         const blob = new Blob([res.data], { type: mimeType });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement("a");
-        a.href     = url;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
         a.download = `dashboard-export.${selectedFormat}`;
         document.body.appendChild(a);
         a.click();
@@ -1197,7 +1197,22 @@ export default function Dashboard() {
                   className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs hover:bg-slate-100/55 dark:hover:bg-slate-800/80 transition cursor-pointer"
                 >
                   <span className="font-bold text-slate-800 dark:text-slate-100">{node.node_name}</span>
-                  <span className="text-slate-400 font-mono text-[10px]">{node.ip}</span>
+                  <div className="flex flex-col gap-0.5 items-end">
+                    {Array.isArray(node.ip) ? (
+                      node.ip.map(([ipVal, comment], idx) => (
+                        <div key={idx} className="relative group inline-block text-right">
+                          <span className="text-slate-450 dark:text-slate-400 font-mono text-[10px] cursor-help hover:text-role-primary hover:underline">{ipVal}</span>
+                          {comment && (
+                            <span className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-50 bg-slate-900 dark:bg-slate-800 text-white text-[10px] px-2.5 py-1.5 rounded-xl shadow-xl whitespace-nowrap font-sans">
+                              {comment}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-slate-400 font-mono text-[10px]">{node.ip}</span>
+                    )}
+                  </div>
                   <Badge variant={node.live_status ? "success" : "danger"}>
                     {node.live_status ? "online" : "offline"}
                   </Badge>

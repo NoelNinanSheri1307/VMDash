@@ -68,13 +68,13 @@ export default function SyncCenter() {
 
     try {
       // Step 1: Cluster
-      await runStep("cluster", "/proxmox/cluster/sync");
+      // await runStep("cluster", "/cluster/sync");         #removed because cluster entry is now manual. there is nothing to sync now for a cluster
       // Step 2: Nodes
-      await runStep("nodes", "/proxmox/nodes/sync");
+      await runStep("nodes", "/nodes/sync");
       // Step 3: Storage
-      await runStep("storage", "/proxmox/storage/sync");
+      await runStep("storage", "/storage/sync");
       // Step 4: VMs
-      await runStep("vms", "/proxmox/vms/sync");
+      await runStep("vms", "/vms/sync");
 
       setSyncStatus("success");
     } catch (err) {
@@ -85,7 +85,7 @@ export default function SyncCenter() {
     } finally {
       const durationSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
       try {
-        await proxmoxApi.post("/proxmox/sync-logs", {
+        await proxmoxApi.post("/sync-logs", {
           duration: parseFloat(durationSeconds),
           status: finalStatus,
           summary: finalSummary
